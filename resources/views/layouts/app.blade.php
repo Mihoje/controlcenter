@@ -10,9 +10,10 @@
     {{-- Page Wrapper --}}
     <div id="wrapper">
 
-        @auth
+        @if(Auth::check() && !isset($full))
             @include('layouts.sidebar')
-        @endauth
+        @endif
+        
 
         {{-- Content Wrapper --}}
         <div id="content-wrapper" class="d-flex flex-column">
@@ -20,15 +21,15 @@
         {{-- Main Content --}}
         <div id="content">
 
-            @auth
+            @if(Auth::check() && !isset($full))
                 @include('layouts.topbar')
-            @endauth
+            @endif
 
             @yield('content-master') {{-- For special things to be done outside the container --}}
             
             <div class="container-fluid">
 
-                @if(!Route::is('front'))
+                @if(!Route::is('front') && !isset($full))
 
                     <div class="page-title d-flex justify-content-between">
                         <h3 class="text-gray-800">

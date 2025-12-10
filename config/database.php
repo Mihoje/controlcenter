@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Database\DBAL\TimestampType;
 use Illuminate\Support\Str;
 
 return [
@@ -81,7 +82,7 @@ return [
             'collation' => null,
             'prefix' => env('DB_TABLE_PREFIX', null),
             'prefix_indexes' => true,
-            'strict' => true,
+            'strict' => false,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
@@ -185,6 +186,22 @@ return [
             'database' => env('REDIS_CACHE_DB', 1),
         ],
 
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Adding Doctrine Type Mapping
+    |--------------------------------------------------------------------------
+    |
+    | This section is used to add custom Doctrine type mapping for the
+    | database connection.
+    |
+    */
+
+    'dbal' => [
+        'types' => [
+            'timestamp' => TimestampType::class,
+        ],
     ],
 
 ];

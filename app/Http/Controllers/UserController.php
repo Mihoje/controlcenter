@@ -49,6 +49,7 @@ class UserController extends Controller
         $ccUsersHours = AtcActivity::all();
         $ccUsersActive = User::getActiveAtcMembers()->pluck('id');
 
+        // Only include users from the division and index by key
         if (config('vatsim.core_api_token')) {
             foreach ($response as $data) {
                 $apiUsers[$data['id']] = $data;
@@ -174,7 +175,9 @@ class UserController extends Controller
             $divisionExams = $divisionExams->sortByDesc('created_at');
         }
 
-        return view('user.show', compact('user', 'groups', 'areas', 'trainings', 'statuses', 'types', 'endorsements', 'areas', 'divisionExams', 'atcActivityHours', 'totalHours'));
+        $trainingBans = $user->trainingBans()->orderBy('created_at', 'DESC')->get();
+
+        return view('user.show', compact('user', 'groups', 'areas', 'trainings', 'statuses', 'types', 'endorsements', 'areas', 'divisionExams', 'atcActivityHours', 'totalHours', 'trainingBans'));
     }
 
     /**
@@ -216,7 +219,7 @@ class UserController extends Controller
                 }
             }
 
-            return json_encode($output);
+            return response()->json($output);
         }
     }
 

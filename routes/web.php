@@ -22,6 +22,9 @@ use App\Http\Controllers\TrainingObjectAttachmentController;
 use App\Http\Controllers\TrainingReportController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VoteController;
+use App\Http\Controllers\FileMainController;
+use App\Http\Controllers\BlockedController;
+use App\Http\Controllers\AirportEndorsementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,8 +32,8 @@ use App\Http\Controllers\VoteController;
 |--------------------------------------------------------------------------
 |
 | Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
+| routes are loaded by the RouteServiceProvider within a group which
+| contains the "web" middleware group. Now create something great!
 |
 */
 
@@ -49,7 +52,7 @@ Route::get('/logout', [LoginController::class, 'logout'])->middleware('auth')->n
 // --------------------------------------------------------------------------
 // Sites behind authentication
 // --------------------------------------------------------------------------
-Route::middleware(['auth', 'activity', 'suspended'])->group(function () {
+Route::middleware(['auth', 'activity'])->group(function () {
     // Sidebar Navigation
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/content', [DashboardController::class, 'content'])->name('content');
@@ -96,7 +99,8 @@ Route::middleware(['auth', 'activity', 'suspended'])->group(function () {
         Route::get('/reports/activities/{id}', 'activities')->name('reports.activities.area');
         Route::get('/reports/mentors', 'mentors')->name('reports.mentors');
         Route::get('/reports/access', 'access')->name('reports.access');
-        Route::get('/reports/feedback', 'feedback')->name('reports.feedback');
+
+        Route::get('/reports/members', 'members')->name('reports.members');
     });
 
     // Admin
@@ -194,11 +198,6 @@ Route::middleware(['auth', 'activity', 'suspended'])->group(function () {
         Route::get('/vote/{id}', 'show')->name('vote.show');
     });
 
-    Route::controller(FeedbackController::class)->group(function () {
-        Route::get('/feedback', 'create')->name('feedback');
-        Route::post('/feedback/store', 'store')->name('feedback.store');
-    });
-
     Route::controller(TaskController::class)->group(function () {
         Route::get('/tasks', 'index')->name('tasks');
         Route::get('/tasks/{activeFilter}', 'index')->name('tasks.filtered');
@@ -206,4 +205,67 @@ Route::middleware(['auth', 'activity', 'suspended'])->group(function () {
         Route::get('/tasks/decline/{id}', 'decline')->name('task.decline');
         Route::post('/task/store', 'store')->name('task.store');
     });
+
+    // Events routes
+    Route::controller(EventController::class)->group(function(){
+        Route::get('/event/create', 'create')->name('event.create');
+        Route::post('/event/store', 'store')->name('event.store');
+        Route::get('/event/delete/{id}', 'delete')->name('event.delete');
+        Route::get('/event/publish/{id}', 'publish')->name('event.publish');
+        Route::get('/event/edit/{id}', 'edit')->name('event.edit');
+        Route::patch('/event/patch/{id}', 'patch')->name('event.patch');
+
+        //API
+        Route::get('/event/data/{id}', 'showdata')->name('event.api.data');
+    });
+
+    //Availabilites
+    Route::controller(EventAvailabilityController::class)->group(function(){
+        Route::get('/event/{id}/availability/create', 'create')->name('event.avl.create');
+        Route::post('/event/{id}/availability/store', 'store')->name('event.avl.store');
+        Route::get('/event/{id}/availability/edit', 'edit')->name('event.avl.edit');
+        Route::patch('/event/{id}/availability/update', 'update')->name('event.avl.update');        
+    });
+
+    //Roster
+    Route::controller(EventRosterController::class)->group(function(){
+        Route::get('/event/{id}/roster/show', 'show')->name('event.roster.create');
+        Route::get('/event/{id}/roster/book', 'bookPositions')->name('event.roster.book');
+
+        Route::post('/event/{id}/roster/edit', 'save')->name('event.roster.edit');
+        Route::get('/event/{id}/roster/publish', 'publish')->name('event.roster.publish');
+
+        /*Route::post('/event/roster/save', 'save')->name('event.roster.save');
+        Route::post('/event/roster/edit/save', 'update')->name('event.roster.edit.save');       */
+    });
+
+    //Feedback
+    Route::controller(FeedbackController::class)->group(function(){
+        Route::get('/feedback/create', 'create')->name('feedback.create');
+        Route::get('/feedback/show', 'show')->name('feedback.show');
+        Route::post('/feedback/store', 'store')->name('feedback.store');
+    });
+
+    //Files main
+    Route::get('/filesMain/show', [FileMainController::class, 'show'])->name('filesMain.show');
+    Route::get('/filesMain/create', [FileMainController::class, 'create'])->name('filesMain.create');
+    Route::post('/filesMain/store', [FileMainController::class, 'store'])->name('filesMain.store');
+    Route::get('/filesMain/delete/{id}', [FileMainController::class, 'destroy'])->name('filesMain.delete');
+    
+    //Blocked
+    Route::controller(BlockedController::class)->group(function(){
+        Route::get('/blocked/show', 'show')->name('blocked.show');
+        Route::get('/blocked/create', 'create')->name('blocked.create');
+        Route::post('/blocked/store', 'store')->name('blocked.store');
+        Route::get('/blocked/delete/{id}', 'delete')->name('blocked.delete');
+    });
+
+    Route::controller(TrainingBanController::class)->group(function(){
+        Route::get('/training_bans', 'show')->name('trainingban.show')->defaults('inactive', false);
+        Route::get('/training_bans/inactive', 'show')->name('trainingban.show.inactive')->defaults('inactive', true);
+        Route::get('/training_bans/create/{prefillUser?}', 'create')->name('trainingban.create');
+        Route::get('/training_bans/{id}/revoke', 'revoke')->name('trainingban.revoke');
+        Route::post('/training_bans/store', 'store')->name('trainingban.store');
+    });
+   
 });

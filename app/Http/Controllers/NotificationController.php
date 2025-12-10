@@ -19,7 +19,7 @@ class NotificationController extends Controller
      *
      * @throws \Illuminate\Auth\Access\AuthorizationException
      */
-    public function index($filterArea = 1)
+    public function index($filterArea = 7)
     {
         $this->authorize('viewTemplates', Notification::class);
 

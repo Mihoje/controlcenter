@@ -50,7 +50,7 @@
 
 <div class="row">
     <!-- Current rating card  -->
-    <div class="col-xl-3 col-md-6 mb-4">
+    <div class="col-xl col-md-6 mb-4">
         <div class="card border-left-primary shadow h-100 py-2">
             <div class="card-body">
                 <div class="row g-0 align-items-center">
@@ -67,7 +67,7 @@
     </div>
     
     <!-- Division card -->
-    <div class="col-xl-3 col-md-6 mb-4 d-none d-xl-block d-lg-block d-md-block">
+    <div class="col-xl col-md-6 mb-4 d-none d-xl-block d-lg-block d-md-block">
         <div class="card border-left-primary shadow h-100 py-2">
             <div class="card-body">
                 <div class="row g-0 align-items-center">
@@ -90,7 +90,7 @@
     </div>
     
     <!-- ATC Hours card -->
-    <div class="col-xl-3 col-md-6 mb-4">
+    <div class="col-xl col-md-6 mb-4">
         <div class="card {{ ($atcHours < Setting::get('atcActivityRequirement', 10)) ? 'border-left-danger' : 'border-left-success' }} shadow h-100 py-2">
             <div class="card-body">
                 <div class="row g-0 align-items-center">
@@ -109,7 +109,7 @@
     
     
     <!-- Last training card -->
-    <div class="col-xl-3 col-md-6 mb-4 d-none d-xl-block d-lg-block d-md-block">
+    <div class="col-xl col-md-6 mb-4 d-none d-xl-block d-lg-block d-md-block">
         <div class="card border-left-info shadow h-100 py-2">
             <div class="card-body">
                 <div class="row g-0 align-items-center">
@@ -128,8 +128,159 @@
             </div>
         </div>
     </div>
+
+    @if($nextRoster)
+    <!-- Next roster -->
+    <div class="col-xl col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row g-0 align-items-center">
+                    <div class="col me-2">
+                        <div class="fs-sm fw-bold text-warning text-uppercase mb-1">My next event roster</div>
+                        <div class="row g-0 align-items-center">
+                            <div class="col-auto">
+                                <div class="h5 mb-0 me-3 fw-bold text-gray-800">{{ ($nextRoster->position)?$nextRoster->position->code:'Backup' }} - {{Carbon\Carbon::parse($nextRoster->from)->format('H:i')}}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fa-solid fa-calendar-day fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
     
 </div>
+
+<div class="row event-row">
+    <div class="col-12">
+        <div class="card shadow mb-4 d-block">
+            <!-- Card Header - Dropdown -->
+            <div class="card-header bg-primary py-0 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 fw-bold text-white my-3">Events</h6>
+                @if(Auth::user()->isEventOrAbove())
+                    <a href="{{ route('event.create') }}" class="btn btn-success py-1">New event</a>
+                @endif
+            </div>
+            <!-- Card Body -->
+            <div class="card-body p-0">
+                @if(count($events) > 0)
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover table-leftpadded mb-0" width="100%" cellspacing="0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Date and time</th>
+                                    <th>Reported</th>
+                                    <th>Roster published</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($events as $e)
+                                <tr>
+                                    <td style="vertical-align: middle;">
+                                        <a href="" eid="{{ $e->id }}" @click.prevent="getEventData({{$e->id}})">{{ $e->name }}</a>
+                                        @if(!$e->notification_sent)
+                                            <span class="text-danger ps-2">Not published</span>
+                                        @endif
+                                    </td>
+                                    <td style="vertical-align: middle;">
+                                        {{ $e->timeLength }}</td>
+                                    <td style="vertical-align: middle;">
+                                        @if($e->isUserAvailable(Auth::user()))
+                                            <div class="d-flex align-items-center">
+                                                <i class="fa-solid fa-circle-check text-success" style="font-size:1.3em;"></i>
+                                                <a href="{{ route('event.avl.edit', $e->id) }}" class="ms-3 btn btn-outline-success">Edit availability</a>
+                                            </div>
+                                        @elseif($e->hasUserReported(Auth::user()))
+                                            <div class="d-flex align-items-center">
+                                                <i class="fa-solid fa-circle-minus text-warning" style="font-size:1.3em;"></i>
+                                                <a href="{{ route('event.avl.edit', $e->id) }}" class="ms-3 btn btn-outline-success">Edit availability</a>
+                                            </div>
+                                        @else
+                                            <div class="d-flex align-items-center">
+                                                <i class="fa-solid fa-circle-xmark text-danger" style="font-size:1.3em;"></i>
+                                                <a href="{{ route('event.avl.create', $e->id) }}" class="ms-3 btn btn-success">Report availability</a>
+                                            </div>
+                                        @endif
+                                    </td>
+                                    <td style="vertical-align: middle;">
+                                        {!! $e->roster_published?'<i class="fa-solid fa-circle-check text-success" style="font-size:1.3em;"></i>':'<i class="fa-solid fa-circle-xmark text-danger" style="font-size:1.3em;"></i>' !!}
+                                    </td>
+                                        
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                <div class="d-flex align-items-center justify-content-center">
+                    <p class="my-4">There are no events planned</p>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="eventModal" tabindex="-1" aria-hidden="true" ref="eventModal">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body p-0">
+                    <div class="card shadow d-block">
+                        <!-- Card Header - Dropdown -->
+                        <div class="card-header bg-primary py-0 d-flex flex-row align-items-center justify-content-end">
+                            <h6 class="m-0 fw-bold text-white my-3 eventName me-auto">Event name</h6>
+                            @if(Auth::user()->isEventOrAbove())
+                                <a class="btn btn-success mx-1 editRoster">Edit roster</a>
+                                <a class="btn btn-info mx-1 updateEvent">Update event</a>
+                            @endif
+                            @if(Auth::user()->isAdmin() || Auth::user()->isEvent())
+                                <a class="btn btn-success d-none mx-1 publishEvent">Publish event</a>
+                            @endif
+                        </div>
+                        <!-- Card Body -->
+                        <div class="card-body" style="max-height:85vh;overflow:auto;">
+                            <div class="row mb-3">
+                                <div class="col-12 col-lg-4">
+                                    <div class="w-100 bg-secondary" style="aspect-ratio:16/9;">
+                                        <img src="" alt="event cover image" class="w-100 eventImage" style="aspect-ratio:16/9;object-fit:contain;">
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-8 eventDescription placeholder-glow">
+                                    <span class="placeholder col-7"></span>
+                                </div>
+                            </div>
+                            <div class="row my-3">
+                                <div class="col-12 col-lg-3 text-center border-lg-end border-secondary d-flex justify-content-center flex-column">
+                                    Report status: <div class="d-block text-center reportedStatus placeholder-glow"><span class="badge text-bg-danger placeholder">Not reported</span></div>
+                                </div>
+                                <div class="col-12 col-lg-3 text-center border-lg-end border-secondary d-flex justify-content-center flex-column">
+                                    Report availability: <div class="d-block text-center reportedAvail placeholder-glow"><span class="badge text-bg-danger placeholder">Not reported</span></div>
+                                </div>
+                                <div class="col-12 col-lg-3 text-center border-lg-end border-secondary d-flex justify-content-center flex-column">
+                                    Report time: <div class="d-block text-center reportedTime placeholder-glow"><span class="badge text-bg-danger placeholder">Not reported</span></div>
+                                </div>
+                                <div class="col-12 col-lg-3 text-center d-flex justify-content-center flex-column">
+                                    Your roster: <div class="d-block text-center userRoster placeholder-glow"><span class="badge text-bg-danger placeholder">Not reported</span></div>
+                                </div>
+                            </div>
+                           
+
+                            <div class="row mt-3 eventRosterContainer">
+                                <span class="fs-3 text-center text-secondary border-bottom">Event roster</span>
+                                <div class="eventRosterAll row"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 
 <div class="row">
     <!-- Area Chart -->
@@ -328,4 +479,242 @@
     </div>
     
 </div>
+@endsection
+
+@section('js')
+@vite('resources/js/vue.js')
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const eventModalId = '#eventModal';
+
+        const reportedStatusYes = `<span class="badge text-bg-success">Reported</span>`;
+        const reportedStatusNo = `<span class="badge text-bg-danger">Not reported</span>`;
+
+        const reportedAvailYes = `<span class="badge text-bg-success">Available</span>`;
+        const reportedAvailNo = `<span class="badge text-bg-warning">Not available</span>`;
+
+        const reportedTime = `<span class="badge text-bg-info text-light">{0}</span>`;
+
+        const userRosterYes = `<span class="badge text-bg-success">{0}</span>`;
+        const userRosterNo = `<span class="badge text-bg-secondary">Not on the roster</span>`;
+
+        const rosterNotPublished = `<span class="badge text-bg-secondary">Roster not published</span>`;
+
+        const placeholder = `<span class="placeholder col-7"></span>`;
+        
+        const placeholderBadge = `<span class="placeholder col-3"></span>`;
+
+        const imageURL = `/images/{0}`;
+        const updateEventURL = `{{ route('event.edit', '-1') }}`;
+        const publishEventURL = `{{ route('event.publish', '-1') }}`;
+        const editRosterURL = `{{ route('event.roster.create', '-1') }}`;
+
+        const rosterAirport = `<div class="col-12 col-lg-6 col-xl-4 p-2">
+                                    <ul class="list-group">
+                                        <li class="list-group-item bg-primary text-light text-center">{airportCode}</li>
+                                        {positions}
+                                    </ul>
+                                </div>`;
+
+        const rosterPosition = `<li class="list-group-item list-group-item-primary">
+                                            <div class="d-flex w-100 justify-content-between">
+                                              <h5 class="mb-1">{userName} - {userCid}</h5>
+                                              <small class="text-body-secondary">{positionCode}</small>
+                                            </div>
+                                            <p class="mb-1">{rosterStart} - {rosterEnd}</p>
+                                            <small class="text-body-secondary">{callsign} {frequency}</small>
+                                            {mentors}
+                                        </li>`;
+                                        
+        const rosterMentorContainer = `<div class="d-flex flex-column align-items-end">
+                                                {content}
+                                            </div>`;
+
+        const rosterMentor = `<span class="badge rounded-pill bg-primary mt-1">
+                                                    {description}: {userName} - {userCid}
+                                                </span>`;
+
+        const events = createApp({
+            data() {
+                return {
+                    name: null,
+                    date: null,
+                    startTime: null,
+                    endTime: null,
+                    description: null,
+                    notes: null,
+                    coverImage: null,
+                    eventURL: `{{route('event.api.data', '-1')}}`,
+                }
+            },
+            methods:{
+                getEventData(eventId) {
+
+                    document.querySelector(eventModalId + ' .eventName').innerHTML=placeholder;
+                    document.querySelector(eventModalId + ' .eventDescription').innerHTML=placeholder;
+                    document.querySelector(eventModalId + ' .eventImage').setAttribute('src', '');
+                    document.querySelector(eventModalId + ' .eventImage').classList.add("d-none");
+                    document.querySelector(eventModalId + ' .eventRosterAll').innerHTML = '';
+                    document.querySelector(eventModalId + ' .eventRosterContainer').classList.add("d-none");
+
+                    if(document.querySelector(eventModalId + ' .publishEvent'))
+                        document.querySelector(eventModalId + ' .publishEvent').classList.add('d-none');
+
+                    if(document.querySelector(eventModalId + ' .editRoster'))
+                        document.querySelector(eventModalId + ' .editRoster').classList.add('d-none');
+
+                    if(document.querySelector(eventModalId + ' .updateEvent'))
+                        document.querySelector(eventModalId + ' .updateEvent').setAttribute('href', '');
+
+                    document.querySelector(eventModalId + ' .reportedStatus').innerHTML=placeholderBadge;
+                    document.querySelector(eventModalId + ' .reportedAvail').innerHTML=placeholderBadge;
+                    document.querySelector(eventModalId + ' .reportedTime').innerHTML=placeholderBadge;
+                    document.querySelector(eventModalId + ' .userRoster').innerHTML=placeholderBadge;
+
+                    const modal = new bootstrap.Modal('#eventModal');
+                    modal.show();
+
+                    const xhttp = new XMLHttpRequest();
+
+                    xhttp.onload = function() {
+                        const eventData = JSON.parse(this.responseText);
+
+                        if(!eventData.success) return;
+
+                        document.querySelector(eventModalId + ' .eventName').innerHTML=eventData.data.name;
+                        document.querySelector(eventModalId + ' .eventDescription').innerHTML=eventData.data.description;
+                        document.querySelector(eventModalId + ' .eventImage').setAttribute('src', imageURL.replace('{0}', eventData.data.cover_image));
+                        document.querySelector(eventModalId + ' .eventImage').classList.remove("d-none");
+
+                        if(document.querySelector(eventModalId + ' .updateEvent'))
+                            document.querySelector(eventModalId + ' .updateEvent').setAttribute('href', updateEventURL.replace('-1', eventData.data.id));
+
+                        if(document.querySelector(eventModalId + ' .publishEvent'))
+                            document.querySelector(eventModalId + ' .publishEvent').setAttribute('href', publishEventURL.replace('-1', eventData.data.id));
+                        
+                        if(!eventData.data.notification_sent)
+                            document.querySelector(eventModalId + ' .publishEvent').classList.remove('d-none');
+                        else if(document.querySelector(eventModalId + ' .editRoster')){
+                            document.querySelector(eventModalId + ' .editRoster').classList.remove('d-none');
+                            document.querySelector(eventModalId + ' .editRoster').setAttribute('href', editRosterURL.replace('-1', eventData.data.id));
+                        }
+
+                        if(!eventData.user_data){
+                            document.querySelector(eventModalId + ' .reportedStatus').innerHTML=reportedStatusNo;
+                            document.querySelector(eventModalId + ' .reportedAvail').innerHTML=reportedStatusNo;
+                            document.querySelector(eventModalId + ' .reportedTime').innerHTML=reportedStatusNo;
+                        } else {
+                            document.querySelector(eventModalId + ' .reportedStatus').innerHTML=reportedStatusYes;
+                            document.querySelector(eventModalId + ' .reportedAvail').innerHTML=(eventData.user_data.available)?reportedAvailYes:reportedAvailNo;
+                            document.querySelector(eventModalId + ' .reportedTime').innerHTML=(eventData.user_data.available)?reportedTime.replace('{0}', eventData.user_data.start+'-'+eventData.user_data.end):reportedAvailNo;
+                        }
+
+                        if(eventData.user_roster && eventData.user_roster.length > 0){
+                            var html = "";
+                            eventData.user_roster.forEach((roster) => {
+
+                                var entry = `${(roster.position)?roster.position.code:'Backup'} ${roster.from}-${roster.to}`;
+
+                                if(roster.mentors && roster.mentors.length > 0){
+                                    roster.mentors.forEach((mentor) => {
+                                        entry += `<br>${(mentor.description)?mentor.description:'Mentor'}: ${mentor.user.first_name} ${mentor.user.last_name}[${mentor.user.id}]`;
+                                    });
+                                }
+
+                                html += userRosterYes.replace('{0}', entry);
+
+                            });
+
+                            document.querySelector(eventModalId + ' .userRoster').innerHTML=html;
+
+                        } else if(!eventData.user_data){
+                            document.querySelector(eventModalId + ' .userRoster').innerHTML=reportedStatusNo;
+                        } else if(eventData.data.roster_published){
+                            document.querySelector(eventModalId + ' .userRoster').innerHTML=userRosterNo;
+                        } else {
+                            document.querySelector(eventModalId + ' .userRoster').innerHTML=rosterNotPublished;
+                        }
+
+                        if(eventData.data.roster_published){
+                            const event = eventData.data;
+
+                            var airports = [];
+
+                            event.rosters.forEach(r => {
+                                const airportCode = (r.position)?r.position.code.split('_')[0]:'Backup';
+                                
+                                var html = rosterPosition;
+
+                                html = html.replace('{userName}', `${r.user.first_name} ${r.user.last_name}`);
+                                html = html.replace('{userCid}', r.user.id);
+                                html = html.replace('{positionCode}', (r.position)?r.position.code:'');
+                                html = html.replace('{rosterStart}', r.from);
+                                html = html.replace('{rosterEnd}', r.to);
+
+                                html = html.replace('{callsign}', (r.position)?r.position.callsign:'');
+
+                                if(r.position && r.position.frequency)
+                                    html = html.replace('{frequency}', '- ' + r.position.frequency);
+                                else
+                                    html = html.replace('{frequency}', '');
+
+                                var mentorshtml = '';
+                                var current_mentor = false;
+                                r.mentors.forEach(m => {
+                                    mentorshtml += rosterMentor.replace('{description}', (m.description)?m.description:'Mentor').replace('{userName}', m.user.first_name + ' ' + m.user.last_name).replace('{userCid}', m.user.id);
+                                    if(m.is_current_user)
+                                        current_mentor = true;
+                                });
+
+                                html = html.replace('{mentors}', rosterMentorContainer.replace('{content}', mentorshtml));
+
+                                if(current_mentor)
+                                    html = html.replace('list-group-item-primary', 'list-group-item-warning');
+                                else if(!r.is_current_user)
+                                    html = html.replace('list-group-item-primary', '');
+
+                                airports[airportCode] = ((airports[airportCode])?airports[airportCode]:'') + html;
+                            });
+
+                            var html = '';
+
+                            for (var key in airports) {
+                                const val = airports[key];
+                                html += rosterAirport.replace('{airportCode}', key).replace('{positions}', val);
+                            }
+
+                            document.querySelector(eventModalId + ' .eventRosterAll').innerHTML = html;
+                            document.querySelector(eventModalId + ' .eventRosterContainer').classList.remove("d-none");
+                        }
+
+                    }
+
+                    xhttp.open("GET", this.eventURL.replace('-1', eventId), true);
+                    xhttp.send();
+
+                },
+                isNumeric(value) {
+                    return /^-?\d+$/.test(value);
+                }
+            },
+            mounted(){
+                const params = new Proxy(new URLSearchParams(window.location.search), {
+                    get: (searchParams, prop) => searchParams.get(prop),
+                });
+                // Get the value of "some_key" in eg "https://example.com/?some_key=some_value"
+                let e = params.event;
+
+                if(e){
+                    window.history.replaceState({}, document.title, window.location.href.substring(0, window.location.href.indexOf('?')));
+
+                    if(this.isNumeric(e)){
+                        this.getEventData(parseInt(e));
+                    }
+                }
+            },
+        }).mount('.row.event-row');
+    });
+
+</script>
 @endsection

@@ -4,7 +4,7 @@
 
 @section('content-master')
     <div class="front-cover">
-        <div class="content">
+        <div class="content w-100">
             
             @if(Session::has('error') OR isset($error))
             <div class="alert alert-danger" role="alert">
@@ -26,7 +26,7 @@
                 Training Administration
                 @endif
             </div>
-            <a href="{{ route('login') }}" class="btn btn-success">Login</a>
+            <a href="{{ route('login') }}" class="btn btn-success" style="width:fit-content;padding-left:8rem;padding-right:8rem;">Login</a>
             
             @env('local')
                 <div class="accordion content-wrapper" id="devloginAccordion">

@@ -14,6 +14,7 @@ const GROUP_ADMINISTRATOR = 1;
 const GROUP_MODERATOR = 2;
 const GROUP_MENTOR = 3;
 const GROUP_BUDDY = 4;
+const GROUP_EVENTS = 100;
 
 class User extends Authenticatable
 {
@@ -27,6 +28,12 @@ class User extends Authenticatable
         'last_login' => 'datetime',
         'last_activity' => 'datetime',
         'last_inactivity_warning' => 'datetime',
+    ];
+
+    protected $dates = [
+        'last_login',
+        'last_activity',
+        'last_inactivity_warning',
     ];
 
     /**
@@ -96,6 +103,18 @@ class User extends Authenticatable
 
     }
 
+    public function eventAvailabilities(){
+        return $this->hasMany(EventAvailability::class);
+    }
+
+    public function eventRosters(){
+        return $this->hasMany(EventRoster::class);
+    }
+
+    public function eventRosterMentorings(){
+        return $this->hasMany(EventRosterMentor::class);
+    }
+
     public function endorsements()
     {
         return $this->hasMany(Endorsement::class);
@@ -155,6 +174,38 @@ class User extends Authenticatable
     public function atcActivity()
     {
         return $this->hasMany(AtcActivity::class);
+    }
+
+    public function getInitials(){
+        return sprintf('%s.%s.', (strlen($this->first_name) > 0) ? $this->first_name[0] : '', (strlen($this->last_name) > 0) ? $this->last_name[0] : '');
+    }
+
+    public function getIsTrainingBannedAttribute(){
+        return (bool)$this->trainingBans()->where('expires_on', '>', Carbon::now())->count();
+    }
+
+    public function trainingBans(){
+        return $this->hasMany(TrainingBan::class);
+    }
+
+    public function issuedTrainingBans(){
+        return $this->hasMany(TrainingBan::class, 'id', 'issued_by');
+    }
+
+    public function blockedUser(){
+        return $this->hasOne(BlockedUser::class, 'id', 'blocked_user_id');
+    }
+
+    public function getBlocks(){
+        return $this->hasMany(BlockedUser::class, 'id', 'issued_by');
+    }
+
+    // TODO: decide if we should nuke me from orbit
+    public function atchours()
+    {
+        $atcHoursDB = AtcActivity::where('user_id', $this->id)->get()->first();
+
+        return ($atcHoursDB == null) ? null : $atcHoursDB->hours;
     }
 
     public function getNameAttribute()
@@ -591,6 +642,17 @@ class User extends Authenticatable
         }
 
         return false;
+    }
+
+    //mod
+    public function isEvent()
+    {
+        return $this->groups()->where('id', GROUP_EVENTS)->exists();
+    }
+    //mod
+    public function isEventOrAbove()
+    {
+        return $this->groups()->where('id', GROUP_EVENTS)->exists() || $this->groups()->where('id', GROUP_ADMINISTRATOR)->exists();
     }
 
     /**

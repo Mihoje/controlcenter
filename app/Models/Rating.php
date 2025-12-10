@@ -30,4 +30,8 @@ class Rating extends Model
     {
         return $this->hasMany(Position::class, 'required_facility_rating_id');
     }
+
+    public function eventPositions(){
+        return $this->hasMany(EventPosition::class, 'required_rating');
+    }
 }

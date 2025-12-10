@@ -13,10 +13,14 @@ use App\Models\TrainingExamination;
 use App\Models\TrainingReport;
 use App\Models\User;
 use App\Services\Sql\Sql;
+use App\Helpers\VatsimRating;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Arr;
 
 /**
  * This controller handles the report views and statistics
@@ -400,5 +404,129 @@ class ReportController extends Controller
             ->keyBy('name')
             ->map(fn ($row) => [$row->avg_low, $row->avg_high])
             ->all();
+    }
+
+    public function members(){
+        
+        $this->authorize('viewMemberReport', ManagementReport::class);
+        
+        $inSubdivision = 0;
+        $subdivisionUsers = collect();
+
+        $activeAtcUsers = User::getActiveAtcMembers();
+
+        $cardStats = [
+            'totalUsers' => User::count(),
+            'inSubdivision' => $subdivisionUsers->count(),
+            'visiting' => User::whereHas('endorsements', function($q){
+                $q->where('type', 'VISITING')->where('expired', 0)->where('revoked', 0);
+            })->count(),
+            'activeAtc' => $activeAtcUsers->count(),
+        ];
+
+        if(Cache::has('vaccUsers')){
+
+            $subdivisionUsers = collect(Cache::get('vaccUsers'));
+            $cardStats['inSubdivision'] = $subdivisionUsers->count();
+
+        } else if(config('vatsim.core_api_token')) {
+
+            $response = $this->fetchUsersFromVatsimCoreApi();
+
+            if ($response === false) {
+                return view('reports.members', compact('cardStats'))->withErrors('Error fetching users from VATSIM Core API. Check if your token is correct.');
+            }
+
+            Cache::put('vaccUsers', $response, $seconds = 3 * 60 * 60);
+
+            $subdivisionUsers = collect($response);
+            $cardStats['inSubdivision'] = $subdivisionUsers->count();
+
+        } else {
+            return view('reports.members', compact('cardStats'))->withErrors('Enable VATSIM Core API Integration to enable this feature.');
+        }
+
+        $ratingUsers = collect();
+        $ratingActiveAtc = collect();
+
+        foreach (VatsimRating::cases() as $rating) {
+            $ratingUsers->put($rating->name, $subdivisionUsers->where('rating', $rating->value)->count());
+            
+            $count = $activeAtcUsers->where('rating', $rating->value)->count();
+
+            if($count > 0){
+                $ratingActiveAtc->put($rating->name, $count);
+            }
+        }
+
+        $stats = DB::table('member_statistics')->orderBy('created_at', 'ASC')->get();
+
+        $keys = $stats->unique('key');
+
+        $statsHistory = collect();
+
+        foreach ($keys as $key) {
+            $statsHistory->put($key->key, $stats->where('key', $key->key));
+        }
+
+        $statsHistory = $statsHistory->map(function ($item, $key){
+            
+            $item = $item->map(function($i, $k){
+                $i->x = Carbon::parse($i->created_at)->format('Y-m-d');
+                $i->y = intval($i->value);
+
+                unset($i->id);
+                unset($i->created_at);
+                unset($i->updated_at);
+                unset($i->key);
+                unset($i->value);
+
+                return $i;
+            });
+            
+            return Arr::flatten($item->toArray());
+        });
+
+        return view('reports.members', compact('cardStats', 'ratingUsers', 'ratingActiveAtc', 'statsHistory'));
+    }
+
+    /**
+     * Fetch users from VATSIM Core API
+     *
+     * @return \Illuminate\Http\Response|bool
+     */
+    private function fetchUsersFromVatsimCoreApi()
+    {
+        $url = sprintf('https://api.vatsim.net/v2/orgs/%s/%s', config('app.mode'), config('app.owner_code'));
+        $headers = [
+            'X-API-Key' => config('vatsim.core_api_token'),
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+        ];
+
+        $users = [];
+        $usersCount = 0;
+
+        $limit = 1000;
+        $count = -1;
+
+        do {
+            $response = Http::withHeaders($headers)->get(sprintf('%s?include_inactive=1&limit=%s&offset=%s', $url, $limit, $usersCount));
+
+            if (! $response->successful()) {
+                return false;
+            }
+
+            $jsonResponse = $response->json();
+
+            if ($count == -1) {
+                $count = $jsonResponse['count'];
+            }
+
+            $users = array_merge($users, $jsonResponse['items']);
+            $usersCount = count($users);
+        } while ($usersCount < $count);
+
+        return $users;
     }
 }

@@ -123,6 +123,10 @@
                                 <div class="mb-3" v-show="motivationRequired">
                                     <label class="form-label" for="motivationTextarea">Letter of motivation</label>
                                     <p class="text-muted">Please tell us about yourself, your background, experience and motivation for applying to {{ config('app.owner_name') }}</p>
+                                    <div class="alert alert-danger">
+                                        <p>The letter of motivation really is mandatory! We want to know YOU including reasons why you want to become ATC.</p>
+                                        <p>However, we do not like to talk to AI - if we notice your letter of motivation is AI generated, the training request will be closed instantly.</p>
+                                        <p>You'll be free to open a new one - but PLEASE use YOUR own words there!</p></div>
                                     <textarea class="form-control" name="motivation" id="motivationTextarea" rows="10" placeholder="Minimum 250 characters" maxlength="1500"></textarea>
                                     <span v-show="errLOM" class="text-danger" style="display: none">The letter of motivation needs at least 250 characters</span>
                                 </div>

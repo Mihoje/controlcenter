@@ -20,8 +20,17 @@ class ApiToken
         // Authenticate by searching for the key, check if middleware requires edit rights and compare to key access
         $key = ApiKey::find($request->bearerToken());
 
-        if ($key == null || ($args == 'edit' && $key->read_only == true)) {
+        
+        /* key status is as following:
+         * 0 - edit
+         * 1 - read only
+         * 2 - euroscope
+         */
 
+        if ($key == null 
+            || ($args == 'edit' && $key->status != 0)
+            || ($args == 'euroscope' && $key->status != 2)) {
+                
             // Exception for open routes
             if ($request->getRequestUri() == '/api/bookings' || $request->getRequestUri() == '/api/positions') {
                 $request->attributes->set('unauthenticated', true);
@@ -29,6 +38,7 @@ class ApiToken
                 return $next($request);
             } else {
                 return response()->json([
+                    'success' => false,
                     'message' => 'Unauthorized',
                 ], 401);
             }

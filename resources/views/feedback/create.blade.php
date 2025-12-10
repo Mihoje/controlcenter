@@ -50,7 +50,7 @@
                                     @browser('isFirefox')
                                         <option>{{ $controller->id }}</option>
                                     @else
-                                        <option value="{{ $controller->id }}">{{ $controller->name }}</option>
+                                        <option value="{{ $controller->id }}">{{ $controller->first_name }}</option>
                                     @endbrowser
                                 @endforeach
                             </datalist>
