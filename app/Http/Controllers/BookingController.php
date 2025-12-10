@@ -514,7 +514,7 @@ class BookingController extends Controller
 
         $booking->deleted = true;
 
-        if (App::environment('production')) {
+        if (App::environment('production') && $booking->vatsim_booking) {
             $client = new \GuzzleHttp\Client();
             $url = $this->getVatsimBookingUrl('delete', $booking->vatsim_booking);
 

@@ -93,6 +93,16 @@
             </li>
 
         @endif
+        @can('view', \App\Models\TrainingBan::class)
+
+            <li class="nav-item {{ Route::is('trainingban.show') || Route::is('trainingban.show.inactive') ? 'active' : '' }}">
+                <a class="nav-link" href="{{ route('trainingban.show') }}">
+                    <i class="fas fa-fw fa-ban"></i>
+                    <span>Training Bans</span>
+                </a>
+            </li>
+
+        @endcan
 
         {{-- Divider --}}
         <div class="sidebar-divider"></div>
@@ -164,7 +174,7 @@
             </div>
         </li>
 
-        
+
 
         @if (\Auth::user()->isModeratorOrAbove())
             {{-- Divider --}}
@@ -179,6 +189,10 @@
             <div id="collapseTwo" class="collapse" data-bs-parent="#sidebar">
                 <div class="bg-white py-2 collapse-inner rounded">
                 
+                @if(\Auth::user()->isAdmin())
+                    <a href="{{ route('reports.members') }}" class="collapse-item">Members</a>
+                @endif
+
                 @if(\Auth::user()->isAdmin())
                     <a class="collapse-item" href="{{ route('reports.trainings') }}">Trainings</a>
                 @elseif(\Auth::user()->isModerator())
@@ -197,7 +211,7 @@
                     <a class="collapse-item" href="{{ route('reports.access') }}">Access</a>
                 @endcan
 
-                <a class="collapse-item" href="{{ route('reports.feedback') }}">Feedback</a>
+                {{-- <a class="collapse-item" href="{{ route('feedback.show') }}">Feedback</a> --}}
                 
                 </div>
             </div>
@@ -218,6 +232,8 @@
                     <a class="collapse-item" href="{{ route('admin.settings') }}">Settings</a>
                     <a class="collapse-item" href="{{ route('vote.overview') }}">Votes</a>
                     <a class="collapse-item" href="{{ route('admin.logs') }}">Logs</a>
+                    <a class="collapse-item" href="{{ route('filesMain.show') }}">File upload</a>
+                    <a class="collapse-item" href="{{ route('blocked.show') }}">Blocked users</a>
                 @endif
 
                 @if (\Auth::user()->isModeratorOrAbove())

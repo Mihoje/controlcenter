@@ -98,7 +98,7 @@
                     Activity
                 </h6>
             </div>
-            <div class="card-body">
+            <div class="card-body" style="position: relative; aspect-ratio: 2.2; min-height: 300px;">
                 <canvas id="activityChart"></canvas>
             </div>
         </div>
@@ -215,7 +215,7 @@
             </div>
         
             <div class="col-xl-4 col-lg-12 col-md-12">
-                <div class="card shadow mb-4">
+            <div class="card shadow mb-4">
                     <div class="card-header bg-primary py-3 d-flex flex-row align-items-center justify-content-between">
                         <h6 class="m-0 fw-bold text-white">
                             Division Exams
@@ -261,6 +261,62 @@
                                                         Pending
                                                     @endif
                                                 </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+        
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-primary py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 fw-bold text-white">
+                            Training Bans
+                        </h6>
+                        @can('issueTrainingBan', \App\Models\Training::class)
+                            <a href="{{ route('trainingban.create', $user->id) }}" class="btn btn-icon btn-light"><i class="fas fa-plus"></i> Issue training ban</a>
+                        @endcan
+                    </div>
+                    <div class="card-body {{ $trainingBans->count() == 0 ? '' : 'p-0' }}">
+        
+                        @if($trainingBans->count() == 0)
+                            <p class="mb-0">No training bans recorded</p>
+                        @else
+                            <div class="table-responsive">
+                                <table class="table table-sm table-leftpadded mb-0" width="100%" cellspacing="0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Expires</th>
+                                            <th>Reason</th>
+                                            <th>Banned on</th>
+                                            @can('viewTrainingBanDetails', \App\Models\Training::class)
+                                            <th>Banned by</th>
+                                            @endcan
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($trainingBans as $ban)
+                                            <tr>
+                                                <td class="{{ $ban->isActive() ? 'text-danger' : 'text-secondary' }}">
+                                                    {{ \Carbon\Carbon::parse($ban->expires_on)->toFormattedDateString() }}
+                                                </td>
+                                                <td class="{{ $ban->isActive() ? 'text-danger' : 'text-secondary' }}">
+                                                    {{ $ban->reason }}
+                                                </td>
+                                                <td class="{{ $ban->isActive() ? 'text-danger' : 'text-secondary' }}">
+                                                    {{ \Carbon\Carbon::parse($ban->created_at)->toFormattedDateString() }}
+                                                </td>
+                                                @can('viewTrainingBanDetails', \App\Models\Training::class)
+                                                <td class="{{ $ban->isActive() ? 'text-danger' : 'text-secondary' }}">
+                                                    {{ $ban->issuer->name }} ({{$ban->issuer->id}})
+                                                </td>
+                                                @endcan
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -536,6 +592,14 @@
 
     <!-- Activity chart -->
     <script>
+        const prefixes = ["ADR","LJLA","LDZO","LAAA","LYBA","LWSS","LQSB","LJLJ","LJMB","LJPZ","LJCE","LDZA","LDOS","LDPL","LDRI","LDZD","LDSP","LDDU","LDLO","LDSB","LQSA","LQTZ","LQMO","LQBK","LYBE","LYNI","LYVR","LYBT","LYKV","LYPG","LYTV","LYUZ","LWSK","LWOH","LATI","BKPR"];
+        const colors = {
+            DEL: 'rgba(0, 106, 255, 0.7)',
+            GND: 'rgba(85, 255, 124, 0.7)',
+            TWR: 'rgba(255, 47, 47, 0.7)',
+            APP: 'rgba(62, 255, 239, 0.7)',
+            CTR: 'rgba(85, 184, 255, 0.7)',
+        };
         document.addEventListener("DOMContentLoaded", function () {
 
             // Fetch activity data
@@ -544,45 +608,132 @@
                 .then(data => {
                     if(data && data.length > 0) {
 
+                        var positions = [];
+
                         // Process each connection and calculate hours
                         data.forEach(function (connection) {
                             connection.logontime = new Date(connection.logontime * 1000)
                             connection.logofftime = new Date(connection.logofftime * 1000)
                             connection.hours = parseFloat(((connection.logofftime - connection.logontime) / 1000 / 60 / 60).toFixed(1))
+                            connection.callsignPrefix = connection.callsign.split('_')[0]
                             connection.callsignSuffix = connection.callsign.split('_').pop()
+
+                            if(!positions.includes(connection.callsignSuffix) && prefixes.includes(connection.callsignPrefix))
+                                positions.push(connection.callsignSuffix);
                         })
 
                         // Create chart labels based on the last 11 months
                         var activity = []
+                        var otherActivity = [];
+                        var labels = [];
+                        var vaccActivity = [];
+
+                        positions.forEach(function(p){
+                            activity[p] = [];
+                        });
 
                         for (var i = 11; i >= 0; i--) {
-                            activity[new Date(new Date().setMonth(new Date().getMonth() - i)).toLocaleString('default', { month: 'short' })] = 0
+                            labels.push(new Date(new Date().setMonth(new Date().getMonth() - i)).toLocaleString('default', { month: 'short' }));
+                            otherActivity[new Date(new Date().setMonth(new Date().getMonth() - i)).toLocaleString('default', { month: 'short' })] = 0;
+                            vaccActivity[new Date(new Date().setMonth(new Date().getMonth() - i)).toLocaleString('default', { month: 'short' })] = 0;
+
+                            positions.forEach(function(p){
+                                activity[p][new Date(new Date().setMonth(new Date().getMonth() - i)).toLocaleString('default', { month: 'short' })] = 0;
+                            });
                         }
 
                         data.forEach(function (connection) {
                             var month = connection.logontime.toLocaleString('default', { month: 'short' })
-                            activity[month] += connection.hours
+                            
+                            if(prefixes.includes(connection.callsignPrefix)){
+                                activity[connection.callsignSuffix][month] += connection.hours;
+                                vaccActivity[month] += connection.hours;
+                            } else {
+                                otherActivity[month] += connection.hours;
+                            }
                         })
 
                         // Define labels and chart data
-                        var chartLabels = Object.keys(activity)
                         var chartData = Object.values(activity)
-                    
+
+                        var dataset = [
+                            {
+                                type: 'bar',    
+                                label: 'Other vACCs',
+                                data: Object.values(otherActivity),
+                                stack: 'A',
+                                xAxisID: 'xBack',
+                                order: 2,
+                                backgroundColor: 'rgba(221, 53, 255, 0.7)',
+                                borderColor: 'rgb(221, 53, 255)',
+                                borderWidth: 4
+                            },{
+                                type: 'bar',
+                                label: '{{ env("APP_OWNER_NAME") }}',
+                                data: Object.values(vaccActivity),
+                                stack: 'A',
+                                xAxisID: 'xBack',
+                                order: 1,
+                                backgroundColor: 'transparent',
+                                borderColor: 'rgb(254, 197, 111)',
+                                borderWidth: 4
+                            }
+                        ];
+                        
+                        positions.forEach(function(p){
+                            dataset.push({
+                                type: 'bar',
+                                label: p,
+                                data: Object.values(activity[p]),
+                                borderWidth: 0,
+                                stack: 'B',
+                                xAxisID: 'xFront',
+                                order: 3,
+                                backgroundColor: colors[p]
+                            });
+                        });
+                        
                         // Create the chart
                         var chart = new Chart(
                             document.getElementById('activityChart'),
                             {
-                                type: 'bar',
                                 data: {
-                                    labels: chartLabels,
-                                    datasets: [{
-                                        label: 'Hours online',
-                                        data: chartData,
-                                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                                        borderColor: 'rgb(54, 162, 235)',
-                                        borderWidth: 1
-                                    }]
+                                    labels: labels,
+                                    datasets: dataset
                                 },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    scales: {
+                                        xBack: {
+                                            type: 'category',
+                                            stacked: true,
+                                            display: false,
+                                        },
+                                        xFront: {
+                                            type: 'category',
+                                            stacked: true,
+                                            grid: {drawOnChartArea: false},
+                                        },
+                                        y: {
+                                            stacked: true
+                                        },
+                                    },
+                                    plugins: {
+                                        tooltip: {
+                                            callbacks: {
+                                                label: function(tooltipItem) {
+                                                    let label = tooltipItem.dataset.label || '';
+                                                    if (label) {
+                                                        label += ': ';
+                                                    }
+                                                    label += tooltipItem.formattedValue + ' hours';
+                                                    return label;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         );
                         

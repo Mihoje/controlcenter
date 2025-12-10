@@ -52,4 +52,8 @@ class ManagementReportPolicy
     {
         return $user->isModeratorOrAbove();
     }
+
+    public function viewMemberReport(User $user){
+        return $user->isAdmin();
+    }
 }

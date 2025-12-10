@@ -8,6 +8,8 @@ use App\Models\TrainingInterest;
 use App\Models\TrainingReport;
 use App\Models\User;
 use App\Models\Vote;
+use App\Models\Event;
+use App\Models\EventRoster;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
@@ -80,7 +82,39 @@ class DashboardController extends Controller
 
         $oudatedVersionWarning = $user->isAdmin() && Setting::get('_updateAvailable');
 
-        return view('dashboard', compact('data', 'trainings', 'statuses', 'types', 'dueInterestRequest', 'atcInactiveMessage', 'completedTrainingMessage', 'activeVote', 'atcHours', 'workmailRenewal', 'studentTrainings', 'cronJobError', 'oudatedVersionWarning'));
+
+        //Events
+        $events = collect();
+
+        if(Auth::user()->isEventOrAbove()){
+            $events = Event::where('end', '>=', Carbon::now())->orderBy('start', 'ASC')->get();
+        } else {
+            $events = Event::where('end', '>=', Carbon::now())->where('notification_sent', 1)->orderBy('start', 'ASC')->get();
+        }
+
+        //Next roster
+        /*$nextRoster = EventRoster::where('user_id', Auth::user()->id)->withWhereHas('event',
+        function ($q){ 
+            $q->where('end', '>=', Carbon::now())->where('roster_published', 1);
+        }
+        )->with('position')->orderBy('from', 'ASC')->first();*/
+        //^ this one is the initial one, it doesn't include the mentors search but i'll leave it here just in case
+
+        $nextRoster = EventRoster::with('mentors')
+        ->withWhereHas('event',
+            function ($q){ 
+                $q->where('end', '>=', Carbon::now())->where('roster_published', 1);
+            }
+        )
+        ->where(function($query){
+            $query->whereHas('mentors', function($query){
+                $query->where('user_id', Auth::user()->id);
+            })
+            ->orWhere('user_id', Auth::user()->id);
+        })
+        ->orderBy('from', 'ASC')->first();
+
+        return view('dashboard', compact('data', 'trainings', 'statuses', 'types', 'dueInterestRequest', 'atcInactiveMessage', 'completedTrainingMessage', 'activeVote', 'atcHours', 'workmailRenewal', 'studentTrainings', 'cronJobError', 'oudatedVersionWarning', 'events', 'nextRoster'));
     }
 
     /**

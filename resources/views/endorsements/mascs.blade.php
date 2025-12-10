@@ -17,7 +17,8 @@
 
 <div class="row">
     <div class="col-xl-12 col-md-12 mb-12">
-
+        <small class="text-muted mb-3 d-block">Procedural East: LYTV, LYVR, LYNI, LYKV, LWOH<br>
+        Procedural West: LDOS, LQBK, LQTZ, LQMO, LJPZ, LJMB</small>
         <div class="card shadow mb-4">
             <div class="card-header bg-primary py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 fw-bold text-white">Facility Endorsements</h6> 

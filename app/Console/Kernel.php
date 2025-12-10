@@ -65,6 +65,10 @@ class Kernel extends ConsoleKernel
         $schedule->command('update:atc:status')
             ->dailyAt('01:00');
 
+        // Record current stats and save them in the db
+        $schedule->command('record:member:stats')
+            ->dailyAt('07:00');
+
         // Send our training interest e-mails
         $schedule->command('send:traininginterest')
             ->dailyAt('12:00');

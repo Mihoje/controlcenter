@@ -13,6 +13,15 @@ use Illuminate\Support\Collection;
 
 class UserController extends Controller
 {
+    public function getUserData($id){
+        $user = User::where('id', $id)->first(['id', 'email', 'first_name', 'last_name', 'rating_short', 'rating_long', 'region', 'division', 'subdivision']);
+
+        if(!$user){
+            return response()->json(['success'=>false,'reason'=>'User not found']);
+        }
+
+        return response()->json(['success'=>true,'user_data'=>$user]);
+    }   
     /**
      * Return data based on request parameters
      *
