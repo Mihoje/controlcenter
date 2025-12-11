@@ -24,37 +24,6 @@ class CheckForMaintenanceMode extends Middleware
         'images/*'
     ];
 
-    private $allowedUsers = [
-        1406129,
-        1436181,
-        1190497,
-        10000000,
-        10000001,
-        10000002,
-        10000003,
-        10000004,
-        10000005,
-        10000006,
-        10000007,
-        10000008,
-        10000009,
-        10000010,
-
-        //public checkers that requested
-        /*811107,
-        1326976,
-        1656093,
-        1083172,
-        1716755,
-        1761767,
-        1761905,
-        1443199,
-        1226744,
-        1693164,
-        1588086,*/
-        
-    ];
-
     /**
      * Handle an incoming request.
      *
@@ -76,7 +45,7 @@ class CheckForMaintenanceMode extends Middleware
 
         $response = $next($request);
 
-        if(Auth::check() && in_array(Auth::id(), $this->allowedUsers)){
+        if(Auth::check() && in_array(Auth::id(), config('maintenance.allowed_users'))){
             return $response;
         } else if(!Auth::check()){
             return redirect(route('login'));
