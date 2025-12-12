@@ -23,6 +23,5 @@ jobs:
           script: |
             shopt -u dotglob
             rm -rf /var/www/cc/*
-            mkdir -p /var/www/cc
-            rsync -avz --exclude='.env' --exclude='.*' ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/cc/
+            rsync -avz --exclude='.env' --exclude='.*' ./ /var/www/cc/
             bash /var/www/cc/container/permissions.sh
