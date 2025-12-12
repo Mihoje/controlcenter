@@ -7,19 +7,22 @@ on:
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Sync repo to server folder
-        run: |
-          # Avoid removing .env and hidden things
-          shopt -u dotglob
-          # Cleanup
-          rm -rf /var/www/cc/*
-          # Copy files
-          cp -r ./* /var/www/cc/
-          # Deploy script
-          bash /var/www/cc/container/permissions.sh
+      - name: Deploy to remote server via SSH
+        uses: appleboy/ssh-action@v1.2.4
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            shopt -u dotglob
+            rm -rf /var/www/cc/*
+            mkdir -p /var/www/cc
+            rsync -avz --exclude='.env' --exclude='.*' ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/cc/
+            bash /var/www/cc/container/permissions.sh
