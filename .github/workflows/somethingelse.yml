@@ -1,0 +1,25 @@
+name: CC Production environment deployment
+
+on:
+  push:
+    branches:
+      - actions-test
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Sync repo to server folder
+        run: |
+          # Avoid removing .env and hidden things
+          shopt -u dotglob
+          # Cleanup
+          rm -rf /var/www/cc/*
+          # Copy files
+          cp -r ./* /var/www/cc/
+          # Deploy script
+          bash /var/www/cc/container/permissions.sh
