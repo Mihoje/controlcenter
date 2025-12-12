@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'randomshitidontknow')
+@section('title', 'Dashboard')
 @section('content')
 
 {{-- Success message fed via JS for TR  --}}
