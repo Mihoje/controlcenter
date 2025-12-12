@@ -1,6 +1,4 @@
 #!/bin/bash
-cd ../
-
 composer i
 
 npm ci --omit dev
