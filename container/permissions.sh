@@ -1,6 +1,8 @@
 #!/bin/bash
 composer i
 
+bash migrate.sh
+
 npm ci --omit dev
 npm config set cache /tmp --global
 #su www-data -s /usr/bin/npm run build
