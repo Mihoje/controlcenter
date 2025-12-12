@@ -23,5 +23,7 @@ jobs:
           script: |
             shopt -u dotglob
             rm -rf /var/www/cc/*
+            pwd
+            ls
             rsync -avz --exclude='.env' --exclude='.*' ./ /var/www/cc/
             bash /var/www/cc/container/permissions.sh
