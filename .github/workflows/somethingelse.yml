@@ -22,6 +22,7 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             shopt -u dotglob
+            sudo chown -R github:www-data /var/www/cc
             rm -rf /var/www/cc/*
 
       - name: Copy files
