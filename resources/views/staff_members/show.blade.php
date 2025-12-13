@@ -53,6 +53,20 @@
                         @enderror
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label" for="callsign">Callsign</label>
+                        <input
+                            id="callsign"
+                            class="form-control @error('callsign') is-invalid @enderror"
+                            type="text"
+                            name="callsign"
+                            value="{{ old('callsign') }}"
+                            required>
+                        @error('callsign')
+                            <span class="text-danger">{{ $errors->first('callsign') }}</span>
+                        @enderror
+                    </div>
+
                     <button type="submit" class="btn btn-success">Add staff member</button>
                 </form>
             </div>
@@ -73,7 +87,7 @@
                         <div class="col-4 p-2" data-id="{{ $member->id }}">
                             <div class="card h-100">
                                 <div class="card-body h-100" style="background-color:#CCC">
-                                    <h5 class="card-title text-center">{{ $member->title }}</h5>
+                                    <h5 class="card-title text-center">{{ $member->title }} - {{ $member->callsign }}</h5>
                                     <h6 class="card-subtitle mb-2 text-body-secondary text-center">{{ $member->user->id }}</h6>
                                     <p class="card-text text-center">{{ $member->user->name }}</p>
                                     <p class="text-center p-0 m-0"><a class="btn btn-danger btn-sm" href="{{ route('staffmembers.destroy', $member->id) }}">Remove</a></p>

@@ -25,13 +25,15 @@ class StaffMemberController extends Controller
 
         $r->validate([
             'user' => 'required|integer|exists:users,id',
-            'title' => 'string|required'
+            'title' => 'string|required',
+            'callsign' => 'required|string',
         ]);
 
         $member = new StaffMember();
 
         $member->user_id = $r->user;
         $member->title = $r->title;
+        $member->callsign = $r->callsign;
 
         $member->save();
 

@@ -19,7 +19,7 @@ class StaffMemberController extends Controller
         $staff->each(function($s) use ($filtered){
             $s->user->name = $s->user->name; // Eager load
             $s->user = $s->user->only(['name','id','rating_short']);
-            $filtered->push($s->only(['position','title','user']));
+            $filtered->push($s->only(['position','title','callsign','user']));
         });
 
         return response()->json($filtered);
