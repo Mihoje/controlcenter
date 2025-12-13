@@ -233,6 +233,7 @@
                     <a class="collapse-item" href="{{ route('vote.overview') }}">Votes</a>
                     <a class="collapse-item" href="{{ route('admin.logs') }}">Logs</a>
                     <a class="collapse-item" href="{{ route('filesMain.show') }}">File upload</a>
+                    <a class="collapse-item" href="{{ route('staffmembers.show') }}">Staff members</a>
                     <a class="collapse-item" href="{{ route('blocked.show') }}">Blocked users</a>
                 @endif
 

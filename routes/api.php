@@ -47,4 +47,6 @@ Route::group(['middleware' => ['api-token']], function () {
     Route::get('/userdata/{id}', [App\Http\Controllers\API\UserController::class, 'getUserData'])->name('api.users.getdata');
 
     Route::get('/file_main/get', [App\Http\Controllers\API\FileMainController::class, 'getFiles'])->name('api.filemain.get');
+
+    Route::get('/staff_members/get', [App\Http\Controllers\API\StaffMemberController::class, 'get'])->name('api.staffmembers.get');
 });

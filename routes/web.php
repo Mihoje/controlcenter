@@ -267,5 +267,12 @@ Route::middleware(['auth', 'activity'])->group(function () {
         Route::get('/training_bans/{id}/revoke', 'revoke')->name('trainingban.revoke');
         Route::post('/training_bans/store', 'store')->name('trainingban.store');
     });
+
+    Route::controller(StaffMemberController::class)->group(function(){
+        Route::get('/staff_members', 'show')->name('staffmembers.show');
+        Route::post('/staff_members/store', 'store')->name('staffmembers.store');
+        Route::post('/staff_members/order', 'order')->name('staffmembers.order');
+        Route::get('/staff_members/destroy/{id}', 'destroy')->name('staffmembers.destroy');
+    });
    
 });

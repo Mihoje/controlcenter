@@ -39,7 +39,7 @@
                                     <td><i class="fa-solid fa-file-pdf text-danger"></i></td>
                                     <td>{{Carbon\Carbon::parse($file->created_at)->format('d.m.Y H:i')}}</td>
                                     <td>{{$file->uploader_id}}</td>
-                                    <td><a href="https://cc.vatadria.com{{$file->path}}" target="_blank">{{$file->name}}</a></td>
+                                    <td><a href="{{ asset('storage'. $file->path) }}" target="_blank">{{$file->name}}</a></td>
                                     <td>{{$file->type}}</td>
                                     <td><a class="text-decoration-none text-danger" href="delete/{{$file->id}}">Delete</a></td>
                                     

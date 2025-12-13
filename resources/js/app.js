@@ -4,6 +4,10 @@
 
 import * as bootstrap from 'bootstrap'
 import moment from 'moment';
+import Sortable from 'sortablejs';
+import { Notyf } from 'notyf';
+import 'notyf/notyf.min.css';
+
 
 /**
  * Insert global variables
@@ -11,6 +15,8 @@ import moment from 'moment';
 
 window.moment = moment;
 window.bootstrap = bootstrap;
+window.Sortable = Sortable;
+window.notyf = new Notyf();
 
 /**
  * Sidebar logic

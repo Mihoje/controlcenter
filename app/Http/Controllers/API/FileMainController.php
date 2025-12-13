@@ -17,6 +17,12 @@ class FileMainController extends Controller
         $loa = FileMain::where('type', 'LOA')->orderBy('name', 'ASC')->get(DB::Raw("SUBSTRING_INDEX(SUBSTRING_INDEX(name, '.', 1), '.', -1) AS 'name', path, updated_at"));
         $training = FileMain::where('type', 'Training document')->orderBy('name', 'ASC')->get(DB::Raw("SUBSTRING_INDEX(SUBSTRING_INDEX(name, '.', 1), '.', -1) AS 'name', path, updated_at"));
 
+        $files = collect()->merge($policy)->merge($loa)->merge($training);
+
+        foreach ($files as $file) {
+            $file->url = asset('storage' . $file->path);
+        }
+
         return response()->json([ 'success' => true, 'root_url' => Request::root(), 'policy' => $policy, 'loa' =>$loa, 'training' => $training ]);
     }
 
