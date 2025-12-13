@@ -45,3 +45,4 @@ jobs:
           script: |
             cd /var/www/cc
             bash /var/www/cc/container/permissions.sh
+            bash /var/www/cc/container/migrate.sh
