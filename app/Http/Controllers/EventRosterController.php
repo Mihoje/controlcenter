@@ -276,7 +276,11 @@ class EventRosterController extends Controller
     }
 
     protected function sendNotificationForRoster($event){
-        Http::post('https://discord.com/api/webhooks/865915716782915604/pzlBteQH-Npfa_mM2id_kqzUw82iHIZbcjxh7EqyEM0O97Dv8fT0U9RsIsmvlsufK8KT', [
+        $webhook = config('vatadria.discord_webhooks.events');
+
+        if(empty($webhook)) return false;
+
+        Http::post($webhook, [
             'username'=>"ADRIA events",
             'content' => "<@&572743167439273985>",
              'embeds' => [
@@ -285,7 +289,7 @@ class EventRosterController extends Controller
                     "url" => sprintf('%s?event=%d', route('dashboard'), $event->id),
                     'color' => '39423',
                     "image" => [
-                        'url' => 'https://cc.vatadria.com/images/'.$event->cover_image
+                        'url' => 'https://cc.vatadria.com/storage/images/'.$event->cover_image
                     ],
                 ]
              ],

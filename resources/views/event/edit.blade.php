@@ -97,7 +97,7 @@
                         <label for="coverImage" class="form-label">Cover image</label>
                         <div class="row">
                             <div class="col-lg col-12">
-                                <img src="/images/{{$event->cover_image}}" alt="" class="w-100">
+                                <img src="/storage/images/{{$event->cover_image}}" alt="" class="w-100">
                             </div>
                             <div class="col">
                                 <input 

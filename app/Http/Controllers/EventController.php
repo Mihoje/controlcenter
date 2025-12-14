@@ -19,6 +19,7 @@ use Illuminate\Support\Arr;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 
 class EventController extends Controller
 {
@@ -45,7 +46,12 @@ class EventController extends Controller
             Booking::where('callsign', $roster->position->code)->where('event', 1)->where('time_end', '>', Carbon::parse($roster->from . 'z'))->where('time_start', '<', Carbon::parse($roster->to, 'z'))->delete();
         }
 
-        File::delete(public_path('images').'/'. $e->cover_image);
+        $path = 'public/images/' . $e->cover_image;
+
+        if(Storage::exists($path)){
+            Storage::delete($path);
+        }
+
         $e->delete();
 
         return redirect('/dashboard')->with('success', 'Event has been deleted sucessfully');
@@ -116,7 +122,8 @@ class EventController extends Controller
         $file = $request->file('coverImage');
         $extension = $file->getClientOriginalExtension();
         $filename = time().'.'.$extension;
-        $file->move(public_path('images'), $filename);
+        //$file->move(public_path('images'), $filename);
+        $path = $file->storeAs('public/images', $filename);
 
         $event->cover_image = $filename;
         
@@ -139,7 +146,11 @@ class EventController extends Controller
         //Milan da ima permission
         if(!Auth::user()->isAdmin() && !Auth::user()->isEvent()) return false;
 
-        Http::post('https://discord.com/api/webhooks/865915716782915604/pzlBteQH-Npfa_mM2id_kqzUw82iHIZbcjxh7EqyEM0O97Dv8fT0U9RsIsmvlsufK8KT', [
+        $webhook = config('vatadria.discord_webhooks.events');
+
+        if(empty($webhook)) return false;
+
+        Http::post($webhook, [
             'username'=>"ADRIA events",
             'content' => "<@&572743167439273985>",
              'embeds' => [
@@ -149,7 +160,7 @@ class EventController extends Controller
                     "url" => route('event.avl.create', $event->id),
                     'color' => '14783755',
                     "image" => [
-                        'url' => 'https://cc.vatadria.com/images/'.$event->cover_image
+                        'url' => 'https://cc.vatadria.com/storage/images/'.$event->cover_image
                     ],
                     "fields" => [
                         [
