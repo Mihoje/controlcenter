@@ -155,4 +155,12 @@ class TrainingPolicy
     {
         return $user->isModeratorOrAbove();
     }
+
+    public function viewTrainingBanDetails(User $user){
+        return $user->isModeratorOrAbove();
+    }
+
+    public function issueTrainingBan(User $user){
+        return $user->isModeratorOrAbove();
+    }
 }
