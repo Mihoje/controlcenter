@@ -316,7 +316,9 @@ class EventController extends Controller
 
             $event->cover_image = $filename;
 
-            unlink(public_path('images') . '/'. $oldfile);
+            if(file_exists(public_path('images') . '/'. $oldfile)){
+                unlink(public_path('images') . '/'. $oldfile);
+            }
         }
 
         $event->save();
