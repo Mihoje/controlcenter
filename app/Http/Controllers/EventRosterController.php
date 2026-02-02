@@ -37,11 +37,11 @@ class EventRosterController extends Controller
             return redirect('/dashboard')->withErrors(['The event is not published yet. Publish it first.']);
         }
 
-        
+
         $avail = $event->availabilities()->with(['user'=>function($query){
             $query->select('id', 'first_name', 'last_name', 'rating_short');
         }])->get(DB::raw('*, DATE_FORMAT(`start`, "%H:%i") as "start", DATE_FORMAT(`end`, "%H:%i") as "end"'));
-        
+
         $roster = $event->rosters()->with(['user','mentors.user' => function($query){
             $query->select('id', 'first_name', 'last_name');
         }, 'position'=>function($query){
@@ -134,7 +134,7 @@ class EventRosterController extends Controller
             $er = new EventRoster();
             $er->event()->associate($event);
             $er->position()->associate($pos);
-            
+
             $from = Carbon::parse($event->isoDate . ' ' . $group['start']);
             $to = Carbon::parse($event->isoDate . ' ' . $group['end']);
 
@@ -159,13 +159,13 @@ class EventRosterController extends Controller
                 $er->user()->associate($controller);
 
             $er->save();
-            
+
             if($group['mentor']){
                 $mentors = explode(',', $group['mentor']);
 
 
                 foreach ($mentors as $mentor) {
-                    
+
                     $user = User::find($mentor);
 
                     if(!$user){
@@ -213,14 +213,14 @@ class EventRosterController extends Controller
         $toSave = [];
 
         foreach ($event->rosters as $roster) {
-            
+
             if(!$roster->position){
                 continue;
             }
 
             Booking::where('callsign', $roster->position->code)->where('event', 1)->where('time_end', '>', Carbon::parse($roster->from . 'z'))->where('time_start', '<', Carbon::parse($roster->to, 'z'))->delete();
             Booking::where('callsign', $roster->position->code)->where('time_end', '>', Carbon::parse($roster->from . 'z'))->where('time_start', '<', Carbon::parse($roster->to, 'z'))->update(['deleted'=>1]);
-            
+
             $booking = new Booking();
 
             $booking->source = "Event";
@@ -289,11 +289,11 @@ class EventRosterController extends Controller
                     "url" => sprintf('%s?event=%d', route('dashboard'), $event->id),
                     'color' => '39423',
                     "image" => [
-                        'url' => 'https://cc.vatadria.com/storage/images/'.$event->cover_image
+                        'url' => 'https://cc.vatadria.com/images/'.$event->cover_image
                     ],
                 ]
              ],
          ]);
-         
+
     }
 }

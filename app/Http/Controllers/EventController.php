@@ -160,7 +160,7 @@ class EventController extends Controller
                     "url" => route('event.avl.create', $event->id),
                     'color' => '14783755',
                     "image" => [
-                        'url' => 'https://cc.vatadria.com/storage/images/'.$event->cover_image
+                        'url' => 'https://cc.vatadria.com/images/'.$event->cover_image
                     ],
                     "fields" => [
                         [
