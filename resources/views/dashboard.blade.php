@@ -65,7 +65,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Division card -->
     <div class="col-xl col-md-6 mb-4 d-none d-xl-block d-lg-block d-md-block">
         <div class="card border-left-primary shadow h-100 py-2">
@@ -88,7 +88,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- ATC Hours card -->
     <div class="col-xl col-md-6 mb-4">
         <div class="card {{ ($atcHours < Setting::get('atcActivityRequirement', 10)) ? 'border-left-danger' : 'border-left-success' }} shadow h-100 py-2">
@@ -105,9 +105,9 @@
             </div>
         </div>
     </div>
-    
-    
-    
+
+
+
     <!-- Last training card -->
     <div class="col-xl col-md-6 mb-4 d-none d-xl-block d-lg-block d-md-block">
         <div class="card border-left-info shadow h-100 py-2">
@@ -151,7 +151,7 @@
         </div>
     </div>
     @endif
-    
+
 </div>
 
 <div class="row event-row">
@@ -209,7 +209,7 @@
                                     <td style="vertical-align: middle;">
                                         {!! $e->roster_published?'<i class="fa-solid fa-circle-check text-success" style="font-size:1.3em;"></i>':'<i class="fa-solid fa-circle-xmark text-danger" style="font-size:1.3em;"></i>' !!}
                                     </td>
-                                        
+
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -266,7 +266,7 @@
                                     Your roster: <div class="d-block text-center userRoster placeholder-glow"><span class="badge text-bg-danger placeholder">Not reported</span></div>
                                 </div>
                             </div>
-                           
+
 
                             <div class="row mt-3 eventRosterContainer">
                                 <span class="fs-3 text-center text-secondary border-bottom">Event roster</span>
@@ -285,7 +285,7 @@
 <div class="row">
     <!-- Area Chart -->
     <div class="col-xl-8 col-lg-7 ">
-        
+
         @if(\Auth::user()->isMentor())
         <div class="card shadow mb-4 d-none d-xl-block d-lg-block d-md-block">
             <!-- Card Header - Dropdown -->
@@ -294,7 +294,7 @@
             </div>
             <!-- Card Body -->
             <div class="card-body {{ sizeof($studentTrainings) == 0 ? '' : 'p-0' }}">
-                
+
                 @if (sizeof($studentTrainings) == 0)
                 <p class="mb-0">You have no students.</p>
                 @else
@@ -343,7 +343,7 @@
                                             @else
                                             <span class="{{ ($trainingIntervalExceeded && $training->status != \App\Helpers\TrainingStatus::AWAITING_EXAM->value && !$training->paused_at) ? 'text-danger' : '' }}">{{ $reportDate->diffForHumans(['parts' => 2]) }}</span>
                                             @endif
-                                            
+
                                         </span>
                                     @else
                                         No registered training yet
@@ -358,7 +358,7 @@
             </div>
         </div>
         @endif
-        
+
         <div class="card shadow mb-4">
             <!-- Card Header - Dropdown -->
             <div class="card-header bg-primary py-3 d-flex flex-row align-items-center justify-content-between">
@@ -366,7 +366,7 @@
             </div>
             <!-- Card Body -->
             <div class="card-body {{ $trainings->count() == 0 ? '' : 'p-0' }}">
-                
+
                 @if ($trainings->count() == 0)
                 <p>You have no registered trainings.</p>
                 @else
@@ -418,7 +418,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-xl-4 col-lg-5">
         <div class="card shadow mb-4">
             <!-- Card Header - Dropdown -->
@@ -431,7 +431,7 @@
                     <img class="img-fluid px-3 px-sm-4 mb-4" style="width: 25rem;" src="images/undraw_speech_to_text_vatsim.svg" alt="">
                 </div>
                 <p>Are you interested in becoming an Air Traffic Controller? Wish to receive training for a higher rating? Request training below and you will be notified when a space is available.</p>
-                
+
                 @can('apply', \App\Models\Training::class)
                 <div class="d-grid">
                     <a href="{{ route('training.apply') }}" class="btn btn-success">
@@ -439,7 +439,7 @@
                     </a>
                 </div>
                 @else
-                
+
                 <div class="btn btn-{{ (\Auth::user()->hasActiveTrainings(true) && Setting::get('trainingEnabled')) ? 'success' : 'primary' }} d-block disabled not-allowed" role="button" aria-disabled="true">
                     @if(\Auth::user()->hasActiveTrainings(true) && Setting::get('trainingEnabled'))
                     <i class="fas fa-check"></i>
@@ -448,36 +448,36 @@
                     @endif
                     {{ Gate::inspect('apply', \App\Models\Training::class)->message() }}
                 </div>
-                
+
                 @if(Setting::get('trainingEnabled'))
                 <div class="alert alert-primary" role="alert">
                     <p class="small">
                         <b><i class="fas fa-chevron-right"></i> How do I join the division?</b>
                         <a href="{{ Setting::get('linkJoin') }}" target="_blank">Read about joining here. You will be able to apply here within 24 hours after transfer.</a>
-                        
+
                         <br>
-                        
+
                         <b><i class="fas fa-chevron-right"></i> How to apply to be a visiting controller?</b>
                         <a href="{{ Setting::get('linkVisiting') }}" target="_blank">Check this page for more information.</a>
-                        
+
                         <br>
-                        
+
                         <b><i class="fas fa-chevron-right"></i> My rating is inactive?</b>
                         <a href="{{ Setting::get('linkContact') }}" target="_blank">Contact local training staff for refresh or transfer training.</a>
-                        
+
                         <br>
-                        
+
                         <b><i class="fas fa-chevron-right"></i> How long is the queue?</b>
                         {{ \Auth::user()->getActiveTraining()->area->waiting_time ?? 'See application page or training confirmation email for details.' }}
                     </p>
                 </div>
                 @endif
-                
+
                 @endcan
             </div>
         </div>
     </div>
-    
+
 </div>
 @endsection
 
@@ -502,10 +502,10 @@
         const rosterNotPublished = `<span class="badge text-bg-secondary">Roster not published</span>`;
 
         const placeholder = `<span class="placeholder col-7"></span>`;
-        
+
         const placeholderBadge = `<span class="placeholder col-3"></span>`;
 
-        const imageURL = `/storage/images/{0}`;
+        const imageURL = `/images/{0}`;
         const updateEventURL = `{{ route('event.edit', '-1') }}`;
         const publishEventURL = `{{ route('event.publish', '-1') }}`;
         const editRosterURL = `{{ route('event.roster.create', '-1') }}`;
@@ -526,7 +526,7 @@
                                             <small class="text-body-secondary">{callsign} {frequency}</small>
                                             {mentors}
                                         </li>`;
-                                        
+
         const rosterMentorContainer = `<div class="d-flex flex-column align-items-end">
                                                 {content}
                                             </div>`;
@@ -592,7 +592,7 @@
 
                         if(document.querySelector(eventModalId + ' .publishEvent'))
                             document.querySelector(eventModalId + ' .publishEvent').setAttribute('href', publishEventURL.replace('-1', eventData.data.id));
-                        
+
                         if(!eventData.data.notification_sent)
                             document.querySelector(eventModalId + ' .publishEvent').classList.remove('d-none');
                         else if(document.querySelector(eventModalId + ' .editRoster')){
@@ -643,7 +643,7 @@
 
                             event.rosters.forEach(r => {
                                 const airportCode = (r.position)?r.position.code.split('_')[0]:'Backup';
-                                
+
                                 var html = rosterPosition;
 
                                 html = html.replace('{userName}', `${r.user.first_name} ${r.user.last_name}`);
