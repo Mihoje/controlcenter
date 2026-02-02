@@ -46,7 +46,7 @@ class EventController extends Controller
             Booking::where('callsign', $roster->position->code)->where('event', 1)->where('time_end', '>', Carbon::parse($roster->from . 'z'))->where('time_start', '<', Carbon::parse($roster->to, 'z'))->delete();
         }
 
-        $path = 'public/images/' . $e->cover_image;
+        $path = 'storage/images/' . $e->cover_image;
 
         if(Storage::exists($path)){
             Storage::delete($path);
@@ -123,10 +123,10 @@ class EventController extends Controller
         $extension = $file->getClientOriginalExtension();
         $filename = time().'.'.$extension;
         //$file->move(public_path('images'), $filename);
-        $path = $file->storeAs('public/images', $filename);
+        $path = $file->storeAs('storage/images', $filename);
 
         $event->cover_image = $filename;
-        
+
         $event->save();
 
         if($request->has('sendNotification')){
@@ -168,7 +168,7 @@ class EventController extends Controller
                         "value" => Carbon::parse($event->start)->format("d.m.Y H:i")."-".Carbon::parse($event->end)->format("H:i"),
                         "inline" => true
                         ],
-                    
+
                         [
                         "name" => "What?",
                         "value" => str_replace('&nbsp;', '', strip_tags($event->description)),
@@ -179,13 +179,13 @@ class EventController extends Controller
              ],
          ]);
 
-         
+
     }
 
     public function showdata($id){
 
         $event = Event::find($id);
-        
+
         if(!$event){ //Event doesn't exist
             return response()->json(['success'=>false,'reason'=>'The event doesn\'t exist']);
         }
@@ -242,10 +242,10 @@ class EventController extends Controller
     }
 
     public function edit($id){
-        
+
         if(!Auth::user()->isEvent()){
             return redirect()->route('dashboard')->withErrors(['You\'re not allowed to access this page']);
-        }        
+        }
 
         $event = Event::find($id);
 
@@ -264,7 +264,7 @@ class EventController extends Controller
         //TODO promeni svaki roster i mozda availability da bude u skladu sa novim vremenom
         if(!Auth::user()->isEvent()){
             return redirect()->route('dashboard')->withErrors(['You\'re not allowed to access this page']);
-        } 
+        }
 
         $event = Event::find($id);
 
@@ -285,7 +285,7 @@ class EventController extends Controller
             'notes' => 'max:1000',
             'coverImage' => 'image|max:5120'
         ]);
-        
+
 
         $event->name = $request->name;
 
@@ -295,7 +295,7 @@ class EventController extends Controller
 
         $event->start=Carbon::parse($date . ' ' . $request->startTime . 'z'); //z to make Carbon understand it's UTC
         $event->end=Carbon::parse($date . ' ' . $request->endTime . 'z'); //z to make Carbon understand it's UTC
-        
+
         if(!$event->end->isAfter($event->start)){
             return redirect()->back()->withErrors(['The event can\'t end before it started']);
         } else if($event->start->diffInHours($event->end) < 2){
@@ -318,9 +318,9 @@ class EventController extends Controller
 
             unlink(public_path('images') . '/'. $oldfile);
         }
-        
+
         $event->save();
-    
+
         return redirect()->route('dashboard')->with('success', 'Event updated successfully');
     }
 
