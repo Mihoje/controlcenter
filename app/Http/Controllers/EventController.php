@@ -46,7 +46,7 @@ class EventController extends Controller
             Booking::where('callsign', $roster->position->code)->where('event', 1)->where('time_end', '>', Carbon::parse($roster->from . 'z'))->where('time_start', '<', Carbon::parse($roster->to, 'z'))->delete();
         }
 
-        $path = 'storage/images/' . $e->cover_image;
+        $path = 'public/images/' . $e->cover_image;
 
         if(Storage::exists($path)){
             Storage::delete($path);
@@ -123,7 +123,7 @@ class EventController extends Controller
         $extension = $file->getClientOriginalExtension();
         $filename = time().'.'.$extension;
         //$file->move(public_path('images'), $filename);
-        $path = $file->storeAs('storage/images', $filename);
+        $path = $file->storeAs('public/images', $filename);
 
         $event->cover_image = $filename;
 
