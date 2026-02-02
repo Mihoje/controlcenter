@@ -160,7 +160,7 @@ class EventController extends Controller
                     "url" => route('event.avl.create', $event->id),
                     'color' => '14783755',
                     "image" => [
-                        'url' => 'https://cc.vatadria.com/images/'.$event->cover_image
+                        'url' => 'https://cc.vatadria.com/storage/images/'.$event->cover_image
                     ],
                     "fields" => [
                         [
@@ -310,14 +310,18 @@ class EventController extends Controller
         if($file){
             $extension = $file->getClientOriginalExtension();
             $filename = time().'.'.$extension;
-            $file->move(public_path('images'), $filename);
+            //$file->move(public_path('images'), $filename);
+
+            $file->storeAs('public/images', $filename);
 
             $oldfile = $event->cover_image;
 
             $event->cover_image = $filename;
 
-            if(file_exists(public_path('images') . '/'. $oldfile)){
-                unlink(public_path('images') . '/'. $oldfile);
+            $path = 'public/images/' . $oldfile;
+
+            if(Storage::exists($path)){
+                Storage::delete($path);
             }
         }
 

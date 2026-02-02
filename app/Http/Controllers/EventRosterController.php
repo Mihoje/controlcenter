@@ -289,7 +289,7 @@ class EventRosterController extends Controller
                     "url" => sprintf('%s?event=%d', route('dashboard'), $event->id),
                     'color' => '39423',
                     "image" => [
-                        'url' => 'https://cc.vatadria.com/images/'.$event->cover_image
+                        'url' => 'https://cc.vatadria.com/storage/images/'.$event->cover_image
                     ],
                 ]
              ],

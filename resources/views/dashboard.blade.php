@@ -505,7 +505,7 @@
 
         const placeholderBadge = `<span class="placeholder col-3"></span>`;
 
-        const imageURL = `/images/{0}`;
+        const imageURL = `/storage/images/{0}`;
         const updateEventURL = `{{ route('event.edit', '-1') }}`;
         const publishEventURL = `{{ route('event.publish', '-1') }}`;
         const editRosterURL = `{{ route('event.roster.create', '-1') }}`;
