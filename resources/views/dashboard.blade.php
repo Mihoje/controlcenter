@@ -486,6 +486,8 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
 
+        const hasElevatedAccess = {{ auth()->user()->isEvent() ? 'true' : 'false' }};
+
         const eventModalId = '#eventModal';
 
         const reportedStatusYes = `<span class="badge text-bg-success">Reported</span>`;
@@ -646,7 +648,13 @@
 
                                 var html = rosterPosition;
 
-                                html = html.replace('{userName}', `${r.user.first_name} ${r.user.last_name}`);
+                                var name = `${r.user.first_name} ${r.user.last_name}`;
+
+                                if(hasElevatedAccess){
+                                    name = `<a href="/user/${r.user.id}">${name}</a>`;
+                                }
+
+                                html = html.replace('{userName}', name);
                                 html = html.replace('{userCid}', r.user.id);
                                 html = html.replace('{positionCode}', (r.position)?r.position.code:'');
                                 html = html.replace('{rosterStart}', r.from);
