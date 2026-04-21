@@ -26,10 +26,12 @@
                             <small>{{ Carbon\Carbon::parse($f->created_at)->format('d/m/Y H:i') }}</small>
                         </div>
                         <p class="mb-4" style="white-space: pre-wrap;">{{ $f->feedback }}</p>
-                        <div class="d-flex w-100 justify-content-between">
-                            <small class="d-block text-center flex-fill align-self-center">Submitted by: <a href="{{ route('user.show', $f->submitter->id) }}">{{ $f->footer }}</a></small>
-                            <button onclick="ackFeedback({{ $f->id }})" ack-id="{{ $f->id }}" class="btn btn-success {{ $f->acknowledged ? "disabled" : "" }}">Acknowledge</button>
-                        </div>
+                        @if(!$feedbackUser && auth()->user()->isAdmin())
+                            <div class="d-flex w-100 justify-content-between">
+                                <small class="d-block text-center flex-fill align-self-center">Submitted by: <a href="{{ route('user.show', $f->submitter->id) }}">{{ $f->footer }}</a></small>
+                                <button onclick="ackFeedback({{ $f->id }})" ack-id="{{ $f->id }}" class="btn btn-success {{ $f->acknowledged ? "disabled" : "" }}">Acknowledge</button>
+                            </div>
+                        @endif
                     </div>
                 @endforeach
             </div>
