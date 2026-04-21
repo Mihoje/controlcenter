@@ -4,12 +4,12 @@
 @section('content')
 
 <div class="row">
-    <div class="col-xl-6 col-lg-12 col-md-12 mb-12">
+    <div class="col-xxl-6 col-xl-12 col-lg-12 col-md-12 mb-12">
         <div class="card shadow mb-4">
             <div class="card-header bg-primary py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 fw-bold text-white">
                     Submit Feedback
-                </h6> 
+                </h6>
             </div>
             <div class="card-body">
                 <form action="{!! action('FeedbackController@store') !!}" method="POST">
@@ -33,9 +33,9 @@
                     </div>
 
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label" for="controllers">Controller <small class="form-text"> (Optional)</small></label>
-                            <input 
+                            <input
                                 id="controllers"
                                 class="form-control"
                                 type="text"
@@ -54,14 +54,14 @@
                                     @endbrowser
                                 @endforeach
                             </datalist>
-                            
+
                             @error('controller')
                                 <span class="text-danger">{{ $errors->first('controller') }}</span>
                             @enderror
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label" for="positions">Controller's position <small class="form-text"> (Optional)</small></label>
-                            <input 
+                            <input
                                 id="positions"
                                 class="form-control"
                                 type="text"
@@ -81,6 +81,20 @@
                                 @endforeach
                             </datalist>
                             @error('position')
+                                <span class="text-danger">{{ $errors->first('position') }}</span>
+                            @enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="time">UTC Time <small class="form-text"> (Optional)</small></label>
+                            <input
+                                id="time"
+                                class="form-control"
+                                type="text"
+                                name="time"
+                                value="{{ old('position') }}"
+                                >
+
+                            @error('time')
                                 <span class="text-danger">{{ $errors->first('position') }}</span>
                             @enderror
                         </div>

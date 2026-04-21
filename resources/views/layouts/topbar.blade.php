@@ -27,7 +27,7 @@
 
                 <div class="search-spinner spinner-border spinner-border-sm" role="status"></div>
                 <div class="search-results shadow-sm bg-light">
-                    
+
                 </div>
             </div>
         </form>
@@ -55,12 +55,12 @@
 
                         <div class="search-spinner spinner-border spinner-border-sm" role="status"></div>
                         <div class="search-results bg-light">
-                
+
                         </div>
                     </form>
                 </div>
             </li>
-            
+
         @endif
 
         <div class="topbar-divider d-none d-lg-block"></div>
@@ -80,6 +80,10 @@
                 <a class="dropdown-item" href="{{ route('user.reports', Auth::user()->id) }}">
                     <i class="fas fa-file fa-sm fa-fw me-2 text-primary"></i>
                     My reports
+                </a>
+                <a class="dropdown-item" href="{{ route('feedback.list.user', Auth::user()->id) }}">
+                    <i class="fas fa-comments fa-sm fa-fw me-2 text-primary"></i>
+                    My feedback
                 </a>
                 <a class="dropdown-item" href="{{ route('user.settings') }}">
                     <i class="fas fa-cogs fa-sm fa-fw me-2 text-primary"></i>
@@ -102,7 +106,7 @@
                     </span>
                 @endif
             </button>
-        </li>        
+        </li>
 
     </ul>
 

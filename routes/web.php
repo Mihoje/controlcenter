@@ -224,7 +224,7 @@ Route::middleware(['auth', 'activity'])->group(function () {
         Route::get('/event/{id}/availability/create', 'create')->name('event.avl.create');
         Route::post('/event/{id}/availability/store', 'store')->name('event.avl.store');
         Route::get('/event/{id}/availability/edit', 'edit')->name('event.avl.edit');
-        Route::patch('/event/{id}/availability/update', 'update')->name('event.avl.update');        
+        Route::patch('/event/{id}/availability/update', 'update')->name('event.avl.update');
     });
 
     //Roster
@@ -241,9 +241,12 @@ Route::middleware(['auth', 'activity'])->group(function () {
 
     //Feedback
     Route::controller(FeedbackController::class)->group(function(){
+        Route::get('/feedback/list', 'show')->name('feedback.list');
+        Route::get('/feedback/list/{id}', 'show')->name('feedback.list.user');
         Route::get('/feedback/create', 'create')->name('feedback.create');
         Route::get('/feedback/show', 'show')->name('feedback.show');
         Route::post('/feedback/store', 'store')->name('feedback.store');
+        Route::post('/feedback/ack', 'acknowledge')->name('feedback.acknowledge');
     });
 
     //Files main
@@ -251,7 +254,7 @@ Route::middleware(['auth', 'activity'])->group(function () {
     Route::get('/filesMain/create', [FileMainController::class, 'create'])->name('filesMain.create');
     Route::post('/filesMain/store', [FileMainController::class, 'store'])->name('filesMain.store');
     Route::get('/filesMain/delete/{id}', [FileMainController::class, 'destroy'])->name('filesMain.delete');
-    
+
     //Blocked
     Route::controller(BlockedController::class)->group(function(){
         Route::get('/blocked/show', 'show')->name('blocked.show');
@@ -274,5 +277,5 @@ Route::middleware(['auth', 'activity'])->group(function () {
         Route::post('/staff_members/order', 'order')->name('staffmembers.order');
         Route::get('/staff_members/destroy/{id}', 'destroy')->name('staffmembers.destroy');
     });
-   
+
 });

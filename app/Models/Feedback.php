@@ -27,4 +27,36 @@ class Feedback extends Model
     {
         return $this->belongsTo(Position::class, 'reference_position_id');
     }
+
+    public function getHeaderAttribute(){
+        $controller = $this->referenceUser;
+        $position = $this->referencePosition;
+        $time = $this->time;
+
+        $headingPart = "";
+
+        if($controller){
+            $headingPart = sprintf("%s (%s)", $controller->name, $controller->id);
+        }
+
+        if($position){
+            $headingPart = sprintf("%s%s", strlen($headingPart) ? $headingPart . " - " : "", $position->callsign);
+        }
+
+        if($time) {
+            $headingPart = sprintf("%s%s", strlen($headingPart) ? $headingPart . " - " : "", $time);
+        }
+
+        if(strlen($headingPart) == 0){
+            $headingPart = "No controller data";
+        }
+
+        return $headingPart;
+    }
+
+    public function getFooterAttribute(){
+        $submitter = $this->submitter;
+
+        return sprintf("%s (%s)", $submitter->name, $submitter->id);
+    }
 }
