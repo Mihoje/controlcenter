@@ -20,7 +20,7 @@
         @else
             <div class="list-group d-flex flex-column row-gap-3">
                 @foreach ($feedback as $f)
-                    <div class="rounded list-group-item list-group-item-action {{ $f->acknowledged ? "" : "list-group-item-info" }}">
+                    <div class="rounded list-group-item list-group-item-action {{ $f->acknowledged && !$feedbackUser ? "" : "list-group-item-info" }}">
                         <div class="d-flex w-100 justify-content-between pb-3">
                             <h5 class="mb-1 flex-fill text-center"><a class="{{ $f->referenceUser ? "" : "text-decoration-none" }}" href="{{ $f->referenceUser ? route('user.show', $f->referenceUser->id) : "" }}">{{ $f->header }}</a></h5>
                             <small>{{ Carbon\Carbon::parse($f->created_at)->format('d/m/Y H:i') }}</small>
