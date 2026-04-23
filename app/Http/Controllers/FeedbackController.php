@@ -59,6 +59,10 @@ class FeedbackController extends Controller
 
         $submitter = auth()->user();
 
+        if($submitter->is($controller)){
+            return redirect()->back()->withErrors(["You can not write feedback for yourself"]);
+        }
+
         $feedback = Feedback::create([
             'feedback' => $feedback,
             'submitter_user_id' => $submitter->id,
