@@ -247,6 +247,7 @@ Route::middleware(['auth', 'activity'])->group(function () {
         Route::get('/feedback/show', 'show')->name('feedback.show');
         Route::post('/feedback/store', 'store')->name('feedback.store');
         Route::post('/feedback/ack', 'acknowledge')->name('feedback.acknowledge');
+        Route::post('/feedback/pub', 'publish')->name('feedback.publish');
     });
 
     //Files main

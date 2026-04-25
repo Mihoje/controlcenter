@@ -30,4 +30,8 @@ class FeedbackPolicy
     public function acknowledge(User $user){
         return $user->isAdmin();
     }
+
+    public function publish(User $user){
+        return $user->isAdmin();
+    }
 }

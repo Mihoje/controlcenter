@@ -93,7 +93,7 @@ class FeedbackController extends Controller
         $feedback = Feedback::orderBy('created_at', 'DESC');
 
         if($id){
-            $feedback = $feedback->where('reference_user_id', $id);
+            $feedback = $feedback->where('reference_user_id', $id)->where('published', 1);
         }
 
         $feedback = $feedback->paginate(15);
@@ -117,6 +117,26 @@ class FeedbackController extends Controller
         $feedback = Feedback::find($id);
 
         $feedback->acknowledged = true;
+
+        $feedback->save();
+
+        return response()->json(['success' => 'success'], 200);
+    }
+
+    public function publish(Request $r){
+
+        $this->authorize('publish', Feedback::class);
+
+        $data = $r->validate([
+            'feedback_id' => 'required|exists:feedback,id'
+        ]);
+
+        $id = $data['feedback_id'];
+
+        $feedback = Feedback::find($id);
+
+        $feedback->acknowledged = true;
+        $feedback->published = true;
 
         $feedback->save();
 
