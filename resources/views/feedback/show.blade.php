@@ -61,7 +61,7 @@
                         </div>
                         @endif
                     </div>
-                    @if($f->acknowledged && !$feedbackUser)
+                    @if(!$feedbackUser)
                         <div class="position-absolute top-0 end-0 bottom-0" style="width:3px; background:{{ $f->published ? '#3B6D11' : '#AAAAAA' }};"></div>
                     @endif
                 </div>
