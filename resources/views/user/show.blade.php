@@ -32,13 +32,21 @@
                     <dt>Name</dt>
                     <dd>{{ $user->first_name.' '.$user->last_name }}<button type="button" onclick="navigator.clipboard.writeText('{{ $user->first_name.' '.$user->last_name }}')"><i class="fas fa-copy"></i></button></dd>
 
+                    <dt>Public name</dt>
+                    <dd>
+                        {{ $user->public_name }}
+                        @if($user->is(auth()->user()))
+                            <a href="{{ route('user.settings') }}" target="_blank" title="Change public name" class="link-btn"><i class="fa-solid fa-address-card"></i></button></a>
+                        @endif
+                    </dd>
+
                     <dt>Email</dt>
                     <dd class="separator pb-3">{{ $user->email }}<button type="button" onclick="navigator.clipboard.writeText('{{ $user->email }}')"><i class="fas fa-copy"></i></button></dd>
 
                     <dt class="pt-2">ATC Rating</dt>
                     <dd>{{ $user->rating_short }}</dd>
 
-                    
+
                     @if(config('app.mode') == 'subdivision')
                         <dt>Sub/Division</dt>
                         <dd class="separator pb-3">{{ $user->division }} / {{ $user->subdivision }}</dd>
@@ -152,7 +160,7 @@
                         @endcan
                     </div>
                     <div class="card-body {{ $trainings->count() == 0 ? '' : 'p-0' }}">
-        
+
                         @if($trainings->count() == 0)
                             <p class="mb-0">No registered trainings</p>
                         @else
@@ -209,11 +217,11 @@
                                 </table>
                             </div>
                         @endif
-                        
+
                     </div>
                 </div>
             </div>
-        
+
             <div class="col-xl-4 col-lg-12 col-md-12">
             <div class="card shadow mb-4">
                     <div class="card-header bg-primary py-3 d-flex flex-row align-items-center justify-content-between">
@@ -222,7 +230,7 @@
                         </h6>
                     </div>
                     <div class="card-body {{ $divisionExams->count() == 0 ? '' : 'p-0' }}">
-        
+
                         @if($divisionExams->count() == 0)
                             <p class="mb-0">No division exam history</p>
                         @else
@@ -267,7 +275,7 @@
                                 </table>
                             </div>
                         @endif
-        
+
                     </div>
                 </div>
             </div>
@@ -284,7 +292,7 @@
                         @endcan
                     </div>
                     <div class="card-body {{ $trainingBans->count() == 0 ? '' : 'p-0' }}">
-        
+
                         @if($trainingBans->count() == 0)
                             <p class="mb-0">No training bans recorded</p>
                         @else
@@ -323,7 +331,7 @@
                                 </table>
                             </div>
                         @endif
-        
+
                     </div>
                 </div>
             </div>
@@ -398,7 +406,7 @@
                                                 <th>Revoked by</th>
                                                 <td>{{ isset($endorsement->revoked_by) ? \App\Models\User::find($endorsement->revoked_by)->name : 'System' }}</td>
                                             </tr>
-                                        @endif                    
+                                        @endif
                                     @elseif($endorsement->type == 'SOLO')
                                         <tr class="spacing">
                                             <th>Rating</th>
@@ -521,7 +529,7 @@
                                                 @else
                                                     <td class="text-center"><input type="checkbox" {{ $user->groups()->where('group_id', $group->id)->where('area_id', $area->id)->count() ? "checked" : "" }} disabled></td>
                                                 @endif
-                                                
+
                                             @endforeach
 
                                         </tr>
@@ -571,7 +579,7 @@
             .then(response => response.json())
             .then(data => {
                 var vatsimHours = document.getElementById("vatsim-data");
-    
+
                 if (data.data) {
                     for (let key in data.data) {
                         if (key === "pilot") {
@@ -588,7 +596,7 @@
                 console.error(error);
                 alert('An error occurred while fetching VATSIM hours data.');
             });
-    </script>    
+    </script>
 
     <!-- Activity chart -->
     <script>
@@ -644,7 +652,7 @@
 
                         data.forEach(function (connection) {
                             var month = connection.logontime.toLocaleString('default', { month: 'short' })
-                            
+
                             if(prefixes.includes(connection.callsignPrefix)){
                                 activity[connection.callsignSuffix][month] += connection.hours;
                                 vaccActivity[month] += connection.hours;
@@ -658,7 +666,7 @@
 
                         var dataset = [
                             {
-                                type: 'bar',    
+                                type: 'bar',
                                 label: 'Other vACCs',
                                 data: Object.values(otherActivity),
                                 stack: 'A',
@@ -679,7 +687,7 @@
                                 borderWidth: 4
                             }
                         ];
-                        
+
                         positions.forEach(function(p){
                             dataset.push({
                                 type: 'bar',
@@ -692,7 +700,7 @@
                                 backgroundColor: colors[p]
                             });
                         });
-                        
+
                         // Create the chart
                         var chart = new Chart(
                             document.getElementById('activityChart'),
@@ -736,7 +744,7 @@
                                 }
                             }
                         );
-                        
+
                     } else {
                         document.getElementById('activityChart').parentElement.innerHTML = '<p class="mb-0">No data available</p>'
                     }

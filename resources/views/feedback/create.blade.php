@@ -50,7 +50,7 @@
                                     @browser('isFirefox')
                                         <option>{{ $controller->id }}</option>
                                     @else
-                                        <option value="{{ $controller->id }}">{{ $controller->first_name }}</option>
+                                        <option value="{{ $controller->id }}">{{ $controller->public_name }}</option>
                                     @endbrowser
                                 @endforeach
                             </datalist>
@@ -91,11 +91,11 @@
                                 class="form-control"
                                 type="text"
                                 name="time"
-                                value="{{ old('position') }}"
+                                value="{{ old('time') }}"
                                 >
 
                             @error('time')
-                                <span class="text-danger">{{ $errors->first('position') }}</span>
+                                <span class="text-danger">{{ $errors->first('time') }}</span>
                             @enderror
                         </div>
                     </div>

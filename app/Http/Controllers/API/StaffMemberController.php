@@ -17,8 +17,8 @@ class StaffMemberController extends Controller
         $filtered = collect();
 
         $staff->each(function($s) use ($filtered){
-            $s->user->name = $s->user->name; // Eager load
-            $s->user = $s->user->only(['name','id','rating_short']);
+            $s->user->append('public_name'); // Eager load
+            $s->user = $s->user->only(['public_name','id','rating_short']);
             $filtered->push($s->only(['position','title','callsign','user']));
         });
 

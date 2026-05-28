@@ -620,7 +620,7 @@
 
                                 if(roster.mentors && roster.mentors.length > 0){
                                     roster.mentors.forEach((mentor) => {
-                                        entry += `<br>${(mentor.description)?mentor.description:'Mentor'}: ${mentor.user.first_name} ${mentor.user.last_name}[${mentor.user.id}]`;
+                                        entry += `<br>${(mentor.description)?mentor.description:'Mentor'}: ${mentor.user.display_name} [${mentor.user.id}]`;
                                     });
                                 }
 
@@ -648,7 +648,7 @@
 
                                 var html = rosterPosition;
 
-                                var name = `${r.user.first_name} ${r.user.last_name}`;
+                                var name = `${r.user.display_name}`;
 
                                 if(hasElevatedAccess){
                                     name = `<a href="/user/${r.user.id}">${name}</a>`;
@@ -670,7 +670,7 @@
                                 var mentorshtml = '';
                                 var current_mentor = false;
                                 r.mentors.forEach(m => {
-                                    mentorshtml += rosterMentor.replace('{description}', (m.description)?m.description:'Mentor').replace('{userName}', m.user.first_name + ' ' + m.user.last_name).replace('{userCid}', m.user.id);
+                                    mentorshtml += rosterMentor.replace('{description}', (m.description)?m.description:'Mentor').replace('{userName}', m.user.display_name).replace('{userCid}', m.user.id);
                                     if(m.is_current_user)
                                         current_mentor = true;
                                 });

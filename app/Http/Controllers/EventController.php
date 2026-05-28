@@ -238,7 +238,39 @@ class EventController extends Controller
 
         //dd(DB::getQueryLog());
 
+        //Cleaning up names and sending only the public name of the users
+
+        $elevated_access = auth()->user()->isEventOrAbove() || auth()->user()->isModeratorOrAbove();
+
+        $event->rosters->each(function ($roster) use ($elevated_access) {
+
+            $this->applyUserVisibility($roster->user, $elevated_access);
+
+            $roster->mentors->each(function ($mentor) use ($elevated_access) {
+                $this->applyUserVisibility($mentor->user, $elevated_access);
+            });
+        });
+
+        $userRoster->each(function ($roster) use ($elevated_access) {
+
+            $roster->mentors->each(function ($mentor) use ($elevated_access) {
+                $this->applyUserVisibility($mentor->user, $elevated_access);
+            });
+        });
+
         return response()->json(['success'=>true, 'data'=>$event, 'user_data'=>$userData,'user_roster'=>$userRoster]);
+    }
+
+    private function applyUserVisibility(User $user, bool $elevated_access)
+    {
+        $user->setAttribute(
+            'display_name',
+            $elevated_access
+                ? $user->first_name . ' ' . $user->last_name
+                : $user->public_name
+        );
+
+        $user->makeHidden(['first_name', 'last_name']);
     }
 
     public function edit($id){

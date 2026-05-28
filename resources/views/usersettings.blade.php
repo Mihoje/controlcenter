@@ -8,7 +8,7 @@
 
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 fw-bold text-primary">Settings</h6> 
+                <h6 class="m-0 fw-bold text-primary">Settings</h6>
             </div>
             <div class="card-body">
                 <div class="row">
@@ -17,14 +17,24 @@
                             @csrf
 
                             <p><b>To change email or password, log into <a href="https://my.vatsim.net/" target="_blank">myVATSIM</a>.</b></p>
-                        
+
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="check0" name="setting_notify_newreport" {{ $user->setting_notify_newreport ? "checked" : "" }}>
                                 <label class="form-check-label" for="check0">
                                     Send notification when my mentor publishes a new training report
                                 </label>
                             </div>
-                            
+
+                            <div class="mb-3 mt-4">
+                                <label class="form-label" for="setting_public_name">Public name</label>
+                                <select name="setting_public_name" class="form-select">
+                                    <option value="full_name" {{ $user->public_name_setting == 'full_name' ? 'selected' : '' }}>{{ $user->name }}</option>
+                                    <option value="first_name" {{ $user->public_name_setting == 'first_name' ? 'selected' : '' }}>{{ $user->first_name }}</option>
+                                    <option value="cid_only" {{ $user->public_name_setting == 'cid_only' ? 'selected' : '' }}>{{ $user->id }}</option>
+                                </select>
+                                <small class="form-text text-muted">This is the name that people will see on the event roster or when sending feedback.</small>
+                            </div>
+
                             <div class="mb-3 mt-4">
                                 <label class="form-label" for="active_email">Your VATSIM registered e-mail</label>
                                 <input type="email" class="form-control" name="active_email" value="{{ $user->email }}" disabled>
@@ -44,7 +54,7 @@
                                         Send notification of new tasks
                                     </label>
                                 </div>
-                                
+
                             @endif
 
                             @if($user->isModeratorOrAbove())
@@ -70,7 +80,7 @@
                                         Send notification of new examination reports
                                     </label>
                                 </div>
-                                
+
                                 <div class="mb-3 mt-4">
                                     <label class="form-label" for="setting_workmail_address">Work e-mail</label>
                                     <input type="email" class="form-control @error('setting_workmail_address') is-invalid @enderror" id="setting_workmail_address" name="setting_workmail_address" value="{{ $user->setting_workmail_address ? $user->setting_workmail_address : "" }}">
@@ -79,7 +89,7 @@
                                         <span class="text-danger">{{ $errors->first('setting_workmail_address') }}</span>
                                     @enderror
                                 </div>
-                                
+
                             @endif
 
                             <button class="btn btn-success mt-3" type="submit">Save</button>

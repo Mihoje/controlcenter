@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use anlutro\LaravelSettings\Facade as Setting;
+use App\Enums\PublicNameDisplay;
 use App\Exceptions\PolicyMethodMissingException;
 use App\Exceptions\PolicyMissingException;
 use Carbon\Carbon;
@@ -42,7 +43,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'id', 'email', 'first_name', 'last_name', 'rating', 'rating_short', 'rating_long', 'region', 'division', 'subdivision', 'atc_active', 'last_login', 'access_token', 'refresh_token', 'token_expires',
+        'id', 'email', 'first_name', 'last_name', 'public_name_setting', 'rating', 'rating_short', 'rating_long', 'region', 'division', 'subdivision', 'atc_active', 'last_login', 'access_token', 'refresh_token', 'token_expires',
     ];
 
     /**
@@ -330,6 +331,23 @@ class User extends Authenticatable
             }
 
             return $query->get();
+        }
+    }
+
+    public function getPublicNameAttribute(){
+        $public_name_setting_string = $this->fresh()->public_name_setting;
+
+        $publicNameSetting = PublicNameDisplay::tryFrom($public_name_setting_string);
+
+        switch($publicNameSetting){
+            case PublicNameDisplay::FullName:{
+                return $this->first_name . ' ' . $this->last_name;
+            }
+            case PublicNameDisplay::FirstName:
+                return $this->first_name;
+            case PublicNameDisplay::CID:
+            default:
+                return strval($this->id);
         }
     }
 

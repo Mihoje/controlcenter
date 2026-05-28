@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use anlutro\LaravelSettings\Facade as Setting;
+use App\Enums\PublicNameDisplay;
 use App\Facades\DivisionApi;
 use App\Helpers\Vatsim;
 use App\Models\Area;
@@ -16,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Validation\Rule;
 
 /**
  * Controller to handle user views
@@ -363,6 +365,7 @@ class UserController extends Controller
             'setting_notify_newexamreport' => '',
             'setting_notify_tasks' => '',
             'setting_workmail_address' => 'nullable|email|max:64|regex:/(.*)' . Setting::get('linkDomain') . '$/i',
+            'setting_public_name' => ['required', Rule::in(array_column(PublicNameDisplay::cases(), 'value'))]
         ]);
 
         isset($data['setting_notify_newreport']) ? $setting_notify_newreport = true : $setting_notify_newreport = false;
@@ -371,11 +374,14 @@ class UserController extends Controller
         isset($data['setting_notify_newexamreport']) ? $setting_notify_newexamreport = true : $setting_notify_newexamreport = false;
         isset($data['setting_notify_tasks']) ? $setting_notify_tasks = true : $setting_notify_tasks = false;
 
+        $setting_public_name = $data['setting_public_name'];
+
         $user->setting_notify_newreport = $setting_notify_newreport;
         $user->setting_notify_newreq = $setting_notify_newreq;
         $user->setting_notify_closedreq = $setting_notify_closedreq;
         $user->setting_notify_newexamreport = $setting_notify_newexamreport;
         $user->setting_notify_tasks = $setting_notify_tasks;
+        $user->public_name_setting = $setting_public_name;
 
         if (! $user->setting_workmail_address && isset($data['setting_workmail_address'])) {
             $user->setting_workmail_address = $data['setting_workmail_address'];
