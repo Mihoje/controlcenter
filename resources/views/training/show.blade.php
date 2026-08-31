@@ -83,7 +83,18 @@
                     <dd><i class="{{ $types[$training->type]["icon"] }} text-primary"></i>&ensp;{{ $types[$training->type]["text"] }}</dd>
 
                     <dt>Level</dt>
-                    <dd class="separator pb-3">{{ $training->getInlineRatings() }}</dd>
+                    <dd class="separator pb-3">
+                        @foreach($training->ratings as $rating)
+                            <div>
+                                @if($rating->pivot->completed_at)
+                                    <i class="fas fa-check text-success"></i>&nbsp;{{ $rating->name }}
+                                    <span class="text-muted">({{ \Carbon\Carbon::parse($rating->pivot->completed_at)->toEuropeanDate() }})</span>
+                                @else
+                                    {{ $rating->name }}
+                                @endif
+                            </div>
+                        @endforeach
+                    </dd>
 
                     <dt class="pt-2">Vatsim ID</dt>
                     <dd>
@@ -132,9 +143,31 @@
                     </dd>
                 </dl>
 
-                @can('edit', [\App\Models\Training::class, $training])
-                    <a href="{{ route('training.edit', $training->id) }}" class="btn btn-outline-primary btn-icon"><i class="fas fa-pencil"></i>&nbsp;Edit training</a>
-                @endcan
+                <div class="btn-group" role="group" aria-label="Training actions">
+                    @can('edit', [\App\Models\Training::class, $training])
+                        <a href="{{ route('training.edit', $training->id) }}" class="btn btn-outline-primary btn-icon"><i class="fas fa-pencil"></i>&nbsp;Edit training</a>
+                    @endcan
+
+                    @if($showCompletionControl)
+                        @can('update', $training)
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-outline-success btn-icon dropdown-toggle" type="button" id="completionMenuButton" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i class="fas fa-check me-1"></i>Complete training
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="completionMenuButton">
+                                    @if($canCompletePartially)
+                                        <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#completePartialTraining">
+                                            <i class="fas fa-list-check me-1"></i>Complete partial training
+                                        </button>
+                                    @endif
+                                    <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#completeWholeTraining">
+                                        <i class="fas fa-check me-1"></i>Mark training as completed
+                                    </button>
+                                </div>
+                            </div>
+                        @endcan
+                    @endif
+                </div>
             </div>
         </div>
 
@@ -240,6 +273,8 @@
                                         <i class="fas fa-circle-pause"></i>
                                     @elseif($activity->type == "ENDORSEMENT")
                                         <i class="fas fa-check-square"></i>
+                                    @elseif($activity->type == "RATING")
+                                        <i class="fas fa-list-check"></i>
                                     @elseif($activity->type == "COMMENT")
                                         <i class="fas fa-comment"></i>
                                     @elseif($activity->type == 'PRETRAINING')
@@ -313,6 +348,10 @@
                                                 @endforeach
                                             @endempty
                                         @endif
+                                    @elseif($activity->type == "RATING")
+                                        @isset($activity->rating)
+                                            <span class="badge text-bg-light">{{ $activity->rating->name }}</span> part completed
+                                        @endisset
                                     @elseif($activity->type == "COMMENT")
                                         {!! nl2br($activity->comment) !!}
 
@@ -591,6 +630,14 @@
     @endif
 @endforeach
 
+@if($showCompletionControl)
+    @can('update', $training)
+        @if($canCompletePartially)
+            @include('training.parts.completepartmodal', ['training' => $training, 'completablePart' => $completablePart, 'otherOutstandingRatings' => $otherOutstandingRatings, 'upgradeRequestedForPart' => $upgradeRequestedForPart])
+        @endif
+        @include('training.parts.completetrainingmodal', ['training' => $training, 'outstandingRatings' => $outstandingRatings, 'outstandingEndorsementRatings' => $outstandingEndorsementRatings])
+    @endcan
+@endif
 
 @endsection
 
