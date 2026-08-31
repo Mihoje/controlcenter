@@ -494,7 +494,7 @@
         const reportedAvailYes = `<span class="badge text-bg-success">Available</span>`;
         const reportedAvailNo = `<span class="badge text-bg-warning">Not available</span>`;
 
-        const reportedTime = `<span class="badge text-bg-info text-light">{0}</span>`;
+        const reportedTime = `<span class="badge text-bg-info text-white">{0}</span>`;
 
         const userRosterYes = `<span class="badge text-bg-success">{0}</span>`;
         const userRosterNo = `<span class="badge text-bg-secondary">Not on the roster</span>`;
@@ -512,7 +512,7 @@
 
         const rosterAirport = `<div class="col-12 col-lg-6 col-xl-4 p-2">
                                     <ul class="list-group">
-                                        <li class="list-group-item bg-primary text-light text-center">{airportCode}</li>
+                                        <li class="list-group-item bg-primary text-white text-center">{airportCode}</li>
                                         {positions}
                                     </ul>
                                 </div>`;

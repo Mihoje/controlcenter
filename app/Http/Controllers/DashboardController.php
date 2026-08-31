@@ -88,7 +88,7 @@ class DashboardController extends Controller
         //Events
         $events = collect();
 
-        if(Auth::user()->hasPermission('event.manage')){
+        if(Auth::user()->hasPermission('events.manage')){
             $events = Event::where('end', '>=', Carbon::now())->orderBy('start', 'ASC')->get();
         } else {
             $events = Event::where('end', '>=', Carbon::now())->where('notification_sent', 1)->orderBy('start', 'ASC')->get();

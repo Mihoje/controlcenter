@@ -6,6 +6,8 @@ use App\Helpers\VatsimRating;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PositionRequest;
 use App\Models\Area;
+use App\Models\Event;
+use App\Models\EventPosition;
 use App\Models\Position;
 use App\Services\PositionService;
 use Illuminate\Contracts\View\View;
@@ -42,6 +44,12 @@ class PositionController extends Controller
 
         $position = Position::create($request->validated());
 
+        EventPosition::create([
+            'code' => $request->callsign,
+            'callsign' => $request->name,
+            'frequency' => $request->frequency,
+        ]);
+
         return $this->redirectAfterMutation($request, $position->area_id)
             ->with('success', 'Position ' . $position->callsign . ' created successfully.');
     }
@@ -56,7 +64,20 @@ class PositionController extends Controller
             $this->authorize('create', new Position(['area_id' => $validated['area_id']]));
         }
 
+        $event_position = EventPosition::where('code', $position->callsign)->first();
+        if($event_position){
+
+            $event_position->code = $validated['callsign'];
+            $event_position->callsign = $validated['name'];
+            $event_position->frequency = $validated['frequency'];
+
+            $event_position->save();
+
+        }
+
         $position->update($validated);
+
+
 
         return $this->redirectAfterMutation($request, $position->area_id)
             ->with('success', 'Position ' . $position->callsign . ' updated successfully.');
@@ -67,6 +88,13 @@ class PositionController extends Controller
         $this->authorize('delete', $position);
 
         $areaId = $position->area_id;
+
+        $event_position = EventPosition::where('code', $position->callsign)->first();
+
+        if($event_position){
+            $event_position->delete();
+        }
+
         $position->delete();
 
         return $this->redirectAfterMutation($request, $areaId)

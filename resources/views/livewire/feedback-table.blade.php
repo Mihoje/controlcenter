@@ -1,4 +1,4 @@
-<div x-data="{ current: { submitter: '', submitted: '', feedback: '', controller: '', position: '', controllerLabel: '', positionLabel: '', updateUrl: '' } }">
+<div x-data="{ current: { id: null, submitter: '', submitted: '', feedback: '', controller: '', position: '', controllerLabel: '', positionLabel: '', updateUrl: '', ackUrl: '', publishUrl: '' } }">
 
     <div class="card shadow mb-4">
         <div class="card-header bg-primary py-3">
@@ -66,9 +66,11 @@
                             <th>Submitter</th>
                             <th>Controller</th>
                             <th>Position</th>
+                            <th>Time</th>
                             <th>Area</th>
                             <th>Feedback</th>
                             @can('update', \App\Models\Feedback::class)
+                                <th>Status</th>
                                 <th>Actions</th>
                             @endcan
                         </tr>
@@ -86,23 +88,38 @@
                                     @endisset
                                 </td>
                                 <td>{{ $f->referencePosition?->callsign ?? 'N/A' }}</td>
+                                <td>{{ $f->time ?? 'N/A' }}</td>
                                 <td>{{ $f->referencePosition?->area?->name ?? 'N/A' }}</td>
                                 <td>{!! nl2br(e($f->feedback)) !!}</td>
                                 @can('update', $f)
-                                    <td>
+                                    <td style="vertical-align: middle; text-align: center;">
+                                        {!! $f->published ?
+                                                '<span class="text-success fw-bold">Published</span>' :
+                                                ($f->acknowledged ?
+                                                    '<span class="text-warning fw-bold">Acknowledged</span>' :
+                                                    '<span class="text-danger fw-bold">Not seen</span>')
+                                        !!}
+                                    </td>
+                                    <td style="vertical-align: middle; text-align: center;">
                                         <button type="button"
-                                            class="btn btn-sm btn-primary"
+                                            class="btn btn-sm btn-primary mb-1"
                                             data-bs-toggle="modal"
                                             data-bs-target="#feedback-edit-modal"
                                             @click="current = @js([
+                                                'id' => $f->id,
                                                 'submitter' => $f->submitter->name.' ('.$f->submitter_user_id.')',
                                                 'submitted' => $f->created_at->toEuropeanDateTime(),
                                                 'feedback' => $f->feedback,
+                                                'time' => $f->time,
+                                                'acknowledged' => $f->acknowledged,
+                                                'published' => $f->published,
                                                 'controller' => $f->referenceUser?->id ?? '',
                                                 'position' => $f->referencePosition?->callsign ?? '',
                                                 'controllerLabel' => $f->referenceUser ? $f->referenceUser->name.' ('.$f->referenceUser->id.')' : 'N/A',
                                                 'positionLabel' => $f->referencePosition?->callsign ?? 'N/A',
                                                 'updateUrl' => route('feedback.update', $f->id),
+                                                'ackUrl' => route('feedback.acknowledge'),
+                                                'publishUrl' => route('feedback.publish'),
                                             ])">
                                             Edit
                                         </button>
@@ -174,7 +191,7 @@
                             </div>
 
                             <div class="row mb-4">
-                                <div class="col-md-6">
+                                <div class="col-md-5">
                                     <label class="form-label" for="feedback-edit-controller">Controller
                                         <small class="form-text"> (Optional)</small></label>
                                     <input
@@ -190,7 +207,7 @@
                                     @enderror
                                     <small class="form-text text-muted">Current: <span x-text="current.controllerLabel"></span></small>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-5">
                                     <label class="form-label" for="feedback-edit-position">Controller's position
                                         <small class="form-text"> (Optional)</small></label>
                                     <input
@@ -206,11 +223,64 @@
                                     @enderror
                                     <small class="form-text text-muted">Current: <span x-text="current.positionLabel"></span></small>
                                 </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Time</label>
+                                    <input class="form-control" type="text" x-model="current.time" disabled>
+                                </div>
                             </div>
 
-                            <div class="d-flex justify-content-end">
-                                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-success">Update Feedback</button>
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <a class="btn btn-success me-2" x-show="!current.acknowledged"
+                                        @click="
+                                            fetch(current.ackUrl, {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                    'Accept': 'application/json',
+                                                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').getAttribute('content'),
+                                                },
+                                                body: JSON.stringify({ feedback_id: current.id }),
+                                            })
+                                                .then(response => {
+                                                    if (! response.ok) {
+                                                        throw new Error('Failed to acknowledge feedback');
+                                                    }
+
+                                                    current.acknowledged = true;
+                                                    $wire.$refresh();
+                                                })
+                                                .catch(() => alert('Could not acknowledge this feedback. Please try again.'));
+                                        "
+                                        >Acknowledge</a>
+                                    <a class="btn btn-info" x-show="!current.published"
+                                        @click="
+                                            fetch(current.publishUrl, {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                    'Accept': 'application/json',
+                                                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').getAttribute('content'),
+                                                },
+                                                body: JSON.stringify({ feedback_id: current.id }),
+                                            })
+                                                .then(response => {
+                                                    if (! response.ok) {
+                                                        throw new Error('Failed to publish feedback');
+                                                    }
+
+                                                    current.acknowledged = true;
+                                                    current.published = true;
+                                                    $wire.$refresh();
+                                                })
+                                                .catch(() => alert('Could not publish this feedback. Please try again.'));
+                                        "
+                                        >Publish</a>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-success">Update Feedback</button>
+                                </div>
                             </div>
                         </form>
                     </div>

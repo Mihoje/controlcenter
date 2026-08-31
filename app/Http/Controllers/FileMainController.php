@@ -29,27 +29,27 @@ class FileMainController extends Controller
         $validatedData = $request->validate([
             'file' => 'required|mimes:pdf'
            ]);
-    
+
            $name = $request->file('file')->getClientOriginalName();
-    
+
            //$path = $request->file('file')->store('public/files');
            $path = $request->file->storeAs('public/files', $name);
 
            $path = ltrim($path, 'public');
-    
+
            $save = new FileMain;
-    
+
            $save->uploader_id = auth()->user()->id;
            $save->name = $name;
            $save->path = $path;
            $save->type = $request->type;
            $save->is_available = 1;
            $save->save();
-    
-           ActivityLogController::info('MAIN-FILES', sprintf("Uploaded file with the name '%s' in %s category", $save->name, $save->type));
+
+           ActivityLogService::info('MAIN-FILES', sprintf("Uploaded file with the name '%s' in %s category", $save->name, $save->type));
 
            return redirect()->route('filesMain.show')->with('success', 'File Has been uploaded successfully');
-    
+
     }
     public function destroy($id){
         $file = FileMain::where('id', $id)->first();
@@ -68,5 +68,5 @@ class FileMainController extends Controller
         return redirect()->route('filesMain.show')->with('success', 'File Has been deleted successfully');
 
     }
-   
+
 }

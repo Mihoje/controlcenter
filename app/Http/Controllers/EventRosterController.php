@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\LogName;
 use Illuminate\Http\Request;
 use App\Models\Event;
 use App\Models\EventAvailability;
@@ -11,6 +12,7 @@ use App\Models\EventRosterMentor;
 use App\Models\Position;
 use App\Models\User;
 use App\Models\Booking;
+use App\Services\ActivityLogService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
@@ -115,7 +117,7 @@ class EventRosterController extends Controller
             return redirect()->back()->withErrors(['You can\'t save an empty roster']);
         }
 
-        ActivityLogController::info('OTHER', 'Saved roster for event ' . $event->id);
+        ActivityLogService::info(LogName::Other, 'Saved roster for event ' . $event->id);
 
         $event->rosters()->delete();
 
@@ -241,7 +243,7 @@ class EventRosterController extends Controller
             $b->save();
         }
 
-        ActivityLogController::info('OTHER', 'Booked positions for event ' . $event->id);
+        ActivityLogService::info(LogName::Other, 'Booked positions for event ' . $event->id);
 
         return redirect()->back()->with('success', 'Positions successfully booked!');
     }
@@ -270,7 +272,7 @@ class EventRosterController extends Controller
         $event->roster_published = 1;
         $event->save();
 
-        ActivityLogController::info('OTHER', 'Published roster for event ' . $event->id);
+        ActivityLogService::info(LogName::Other, 'Published roster for event ' . $event->id);
 
         return redirect('/dashboard')->with('success', 'Event sucessfully published');
     }

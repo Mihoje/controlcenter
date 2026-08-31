@@ -10,6 +10,7 @@ use App\Models\Position;
 use App\Models\User;
 use App\Notifications\FeedbackNotification;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class FeedbackController extends Controller

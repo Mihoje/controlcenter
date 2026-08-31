@@ -114,6 +114,48 @@ class FeedbackOverviewTest extends TestCase
     }
 
     #[Test]
+    public function acknowledge_button_posts_the_feedback_id_to_the_acknowledge_route(): void
+    {
+        $position = Position::factory()->create();
+        $feedback = Feedback::factory()->create(['reference_position_id' => $position->id]);
+
+        $html = Livewire::actingAs($this->admin())
+            ->test(FeedbackTable::class)
+            ->html();
+
+        // Undo the @js() escaping so the seeded JSON payload can be asserted plainly.
+        $decoded = str_replace(['\\u0022', '\\\\/', '\\/'], ['"', '/', '/'], $html);
+
+        // The row seeds the modal's `current` object with the feedback id and the ack URL…
+        $this->assertStringContainsString('"id":' . $feedback->id, $decoded);
+        $this->assertStringContainsString('"ackUrl":"' . route('feedback.acknowledge') . '"', $decoded);
+        // …and the Acknowledge action POSTs it back to that URL as `feedback_id`.
+        $this->assertStringContainsString('fetch(current.ackUrl', $html);
+        $this->assertStringContainsString('feedback_id: current.id', $html);
+    }
+
+    #[Test]
+    public function publish_button_posts_the_feedback_id_to_the_publish_route(): void
+    {
+        $position = Position::factory()->create();
+        $feedback = Feedback::factory()->create(['reference_position_id' => $position->id]);
+
+        $html = Livewire::actingAs($this->admin())
+            ->test(FeedbackTable::class)
+            ->html();
+
+        // Undo the @js() escaping so the seeded JSON payload can be asserted plainly.
+        $decoded = str_replace(['\\u0022', '\\\\/', '\\/'], ['"', '/', '/'], $html);
+
+        // The row seeds the modal's `current` object with the feedback id and the publish URL…
+        $this->assertStringContainsString('"id":' . $feedback->id, $decoded);
+        $this->assertStringContainsString('"publishUrl":"' . route('feedback.publish') . '"', $decoded);
+        // …and the Publish action POSTs it back to that URL as `feedback_id`.
+        $this->assertStringContainsString('fetch(current.publishUrl', $html);
+        $this->assertStringContainsString('feedback_id: current.id', $html);
+    }
+
+    #[Test]
     public function feedback_free_text_search_narrows_results(): void
     {
         $position = Position::factory()->create();
