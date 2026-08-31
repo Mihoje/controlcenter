@@ -2,11 +2,45 @@
 
 namespace App\Models;
 
+use App\Helpers\LogName;
+use App\Helpers\VatsimRating;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Position extends Model
 {
+    use HasFactory, LogsActivity;
+
     public $timestamps = false;
+
+    protected $casts = [
+        'rating' => VatsimRating::class,
+    ];
+
+    /**
+     * Record creates, updates and deletes to the activity log under the "sector"
+     * category, with a human-readable description identifying the position.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName(LogName::Sector)
+            ->logOnly(['callsign', 'name', 'frequency', 'fir', 'rating', 'area_id'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->setDescriptionForEvent(fn (string $eventName): string => "Position {$eventName}: {$this->callsign}");
+    }
+
+    protected $fillable = [
+        'callsign',
+        'name',
+        'frequency',
+        'fir',
+        'rating',
+        'area_id',
+    ];
 
     public function bookings()
     {

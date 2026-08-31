@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use anlutro\LaravelSettings\Facade as Setting;
 use App;
+use App\Helpers\InterestStatus;
+use App\Helpers\VatsimRating;
 use App\Models\TrainingInterest;
 use App\Models\TrainingReport;
 use App\Models\User;
@@ -12,6 +14,7 @@ use App\Models\Event;
 use App\Models\EventRoster;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 /**
  * Controller for the dashboard
@@ -31,13 +34,13 @@ class DashboardController extends Controller
     /**
      * Show the application dashboard.
      *
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function index()
     {
         $user = Auth::user();
 
-        $report = TrainingReport::whereIn('training_id', $user->trainings->pluck('id'))->orderBy('created_at')->get()->last();
+        $report = TrainingReport::whereIn('training_id', $user->trainings->pluck('id'))->latest()->first();
 
         $subdivision = $user->subdivision;
         if (empty($subdivision)) {
@@ -53,10 +56,9 @@ class DashboardController extends Controller
         ];
 
         $trainings = $user->trainings;
-        $statuses = TrainingController::$statuses;
         $types = TrainingController::$types;
 
-        $dueInterestRequest = TrainingInterest::whereIn('training_id', $user->trainings->pluck('id'))->where('expired', false)->get()->first();
+        $dueInterestRequest = TrainingInterest::whereIn('training_id', $user->trainings->pluck('id'))->where('expired', InterestStatus::NOT_EXPIRED)->first();
 
         // If the user belongs to our subdivision, doesn't have any training requests, has S2+ rating and is marked as inactive -> show notice
         $allowedSubDivisions = explode(',', Setting::get('trainingSubDivisions'));
@@ -65,7 +67,7 @@ class DashboardController extends Controller
                 (config('app.mode') == 'subdivision' && in_array($user->subdivision, $allowedSubDivisions) && $allowedSubDivisions != null)
                 || (config('app.mode') == 'division' && $user->division == config('app.owner_code'))
             )
-            && ! $user->hasActiveTrainings(true) && $user->rating > 1 && ! $user->isAtcActive() && ! $user->hasRecentlyCompletedTraining()
+            && ! $user->hasActiveTrainings(true) && $user->rating->isGreaterThan(VatsimRating::OBS) && ! $user->isAtcActive() && ! $user->hasRecentlyCompletedTraining()
         );
         $completedTrainingMessage = $user->hasRecentlyCompletedTraining();
 
@@ -78,31 +80,23 @@ class DashboardController extends Controller
 
         $studentTrainings = \Auth::user()->mentoringTrainings();
 
-        $cronJobError = (($user->isAdmin() && App::environment('production')) && (\Carbon\Carbon::parse(Setting::get('_lastCronRun', '2000-01-01')) <= \Carbon\Carbon::now()->subMinutes(5)));
+        $cronJobError = (($user->hasPermission('system.health.view') && App::environment('production')) && (Carbon::parse(Setting::get('_lastCronRun', '2000-01-01')) <= Carbon::now()->subMinutes(5)));
 
-        $oudatedVersionWarning = $user->isAdmin() && Setting::get('_updateAvailable');
+        $oudatedVersionWarning = $user->hasPermission('system.health.view') && Setting::get('_updateAvailable');
 
 
         //Events
         $events = collect();
 
-        if(Auth::user()->isEventOrAbove()){
+        if(Auth::user()->hasPermission('event.manage')){
             $events = Event::where('end', '>=', Carbon::now())->orderBy('start', 'ASC')->get();
         } else {
             $events = Event::where('end', '>=', Carbon::now())->where('notification_sent', 1)->orderBy('start', 'ASC')->get();
         }
 
-        //Next roster
-        /*$nextRoster = EventRoster::where('user_id', Auth::user()->id)->withWhereHas('event',
-        function ($q){ 
-            $q->where('end', '>=', Carbon::now())->where('roster_published', 1);
-        }
-        )->with('position')->orderBy('from', 'ASC')->first();*/
-        //^ this one is the initial one, it doesn't include the mentors search but i'll leave it here just in case
-
         $nextRoster = EventRoster::with('mentors')
         ->withWhereHas('event',
-            function ($q){ 
+            function ($q){
                 $q->where('end', '>=', Carbon::now())->where('roster_published', 1);
             }
         )
@@ -114,13 +108,13 @@ class DashboardController extends Controller
         })
         ->orderBy('from', 'ASC')->first();
 
-        return view('dashboard', compact('data', 'trainings', 'statuses', 'types', 'dueInterestRequest', 'atcInactiveMessage', 'completedTrainingMessage', 'activeVote', 'atcHours', 'workmailRenewal', 'studentTrainings', 'cronJobError', 'oudatedVersionWarning', 'events', 'nextRoster'));
+        return view('dashboard', compact('data', 'trainings', 'types', 'dueInterestRequest', 'atcInactiveMessage', 'completedTrainingMessage', 'activeVote', 'atcHours', 'workmailRenewal', 'studentTrainings', 'cronJobError', 'oudatedVersionWarning', 'events', 'nextRoster'));
     }
 
     /**
      * Show the training apply view
      *
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function apply()
     {
@@ -130,11 +124,11 @@ class DashboardController extends Controller
     /**
      * Show member endorsements view
      *
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function endorsements()
     {
-        $members = User::has('ratings')->get()->sortBy('name');
+        $members = User::has('ratings')->orderBy('first_name')->orderBy('last_name')->get();
 
         return view('endorsements', compact('members'));
     }

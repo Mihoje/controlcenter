@@ -24,7 +24,7 @@
                         {{ $user->id }}
                         <button type="button" onclick="navigator.clipboard.writeText('{{ $user->id }}')"><i class="fas fa-copy"></i></button>
                         <a href="https://stats.vatsim.net/stats/{{ $user->id }}" target="_blank" title="VATSIM Stats" class="link-btn me-1"><i class="fas fa-chart-simple"></i></button></a>
-                        @if($user->division == 'EUD' && Auth::user()->isModeratorOrAbove())
+                        @if($user->division == 'EUD' && Auth::user()->can('users.manage'))
                             <a href="https://core.vateud.net/manage/controller/{{ $user->id }}/view" target="_blank" title="VATEUD Core Profile" class="link-btn"><i class="fa-solid fa-earth-europe"></i></button></a>
                         @endif
                     </dd>
@@ -91,25 +91,18 @@
                     <dt class="pt-2">Last login</dt>
                     <dd>{{ $user->last_login->toEuropeanDateTime() }}</dd>
 
-                    @if(\Auth::user()->isModeratorOrAbove())
+                    @can('users.manage')
                         <dt class="pt-2">Last activity</dt>
                         <dd>{{ isset($user->last_activity) ? $user->last_activity->toEuropeanDateTime() : 'N/A' }}</dd>
-                    @endif
+                    @endcan
 
                 </dl>
             </div>
         </div>
 
-        <div class="card shadow mb-4">
-            <div class="card-header bg-primary py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 fw-bold text-white">
-                    Activity
-                </h6>
-            </div>
-            <div class="card-body" style="position: relative; aspect-ratio: 2.2; min-height: 300px;">
-                <canvas id="activityChart"></canvas>
-            </div>
-        </div>
+        @can('viewAccess', $user)
+            @livewire('user-roles', ['user' => $user])
+        @endcan
 
         <div class="card shadow mb-4">
             <div class="card-header bg-primary py-3 d-flex flex-row align-items-center justify-content-between">
@@ -180,7 +173,7 @@
                                         @foreach($trainings as $training)
                                         <tr>
                                             <td>
-                                                <i class="{{ $statuses[$training->status]["icon"] }} text-{{ $statuses[$training->status]["color"] }}"></i>&ensp;<a href="/training/{{ $training->id }}">{{ $statuses[$training->status]["text"] }}</a>{{ isset($training->paused_at) ? ' (PAUSED)' : '' }}
+                                                <i class="{{ $training->status->icon() }} text-{{ $training->status->color() }}"></i>&ensp;<a href="/training/{{ $training->id }}">{{ $training->status->label() }}</a>{{ isset($training->paused_at) ? ' (PAUSED)' : '' }}
                                             </td>
                                             <td>
                                                 @if ( is_iterable($ratings = $training->ratings->toArray()) )
@@ -399,12 +392,12 @@
                                         </tr>
                                         <tr>
                                             <th>Issued by</th>
-                                            <td>{{ isset($endorsement->issued_by) ? \App\Models\User::find($endorsement->issued_by)->name : 'System' }}</td>
+                                            <td>{{ $endorsement->issuedBy?->name ?? 'System' }}</td>
                                         </tr>
                                         @if($endorsement->revoked)
                                             <tr>
                                                 <th>Revoked by</th>
-                                                <td>{{ isset($endorsement->revoked_by) ? \App\Models\User::find($endorsement->revoked_by)->name : 'System' }}</td>
+                                                <td>{{ $endorsement->revokedBy?->name ?? 'System' }}</td>
                                             </tr>
                                         @endif
                                     @elseif($endorsement->type == 'SOLO')
@@ -422,12 +415,12 @@
                                         </tr>
                                         <tr>
                                             <th>Issued by</th>
-                                            <td>{{ isset($endorsement->issued_by) ? \App\Models\User::find($endorsement->issued_by)->name : 'System' }}</td>
+                                            <td>{{ $endorsement->issuedBy?->name ?? 'System' }}</td>
                                         </tr>
                                         @if($endorsement->revoked)
                                             <tr>
                                                 <th>Revoked by</th>
-                                                <td>{{ isset($endorsement->revoked_by) ? \App\Models\User::find($endorsement->revoked_by)->name : 'System' }}</td>
+                                                <td>{{ $endorsement->revokedBy?->name ?? 'System' }}</td>
                                             </tr>
                                         @endif
                                     @elseif($endorsement->type == "VISITING")
@@ -449,12 +442,12 @@
                                         </tr>
                                         <tr>
                                             <th>Issued by</th>
-                                            <td>{{ isset($endorsement->issued_by) ? \App\Models\User::find($endorsement->issued_by)->name : 'System' }}</td>
+                                            <td>{{ $endorsement->issuedBy?->name ?? 'System' }}</td>
                                         </tr>
                                         @if($endorsement->revoked)
                                             <tr>
                                                 <th>Revoked by</th>
-                                                <td>{{ isset($endorsement->revoked_by) ? \App\Models\User::find($endorsement->revoked_by)->name : 'System' }}</td>
+                                                <td>{{ $endorsement->revokedBy?->name ?? 'System' }}</td>
                                             </tr>
                                         @endif
                                     @elseif($endorsement->type == "EXAMINER")
@@ -476,12 +469,12 @@
                                         </tr>
                                         <tr>
                                             <th>Issued by</th>
-                                            <td>{{ isset($endorsement->issued_by) ? \App\Models\User::find($endorsement->issued_by)->name : 'System' }}</td>
+                                            <td>{{ $endorsement->issuedBy?->name ?? 'System' }}</td>
                                         </tr>
                                         @if($endorsement->revoked)
                                             <tr>
                                                 <th>Revoked by</th>
-                                                <td>{{ isset($endorsement->revoked_by) ? \App\Models\User::find($endorsement->revoked_by)->name : 'System' }}</td>
+                                                <td>{{ $endorsement->revokedBy?->name ?? 'System' }}</td>
                                             </tr>
                                         @endif
                                     @endif
@@ -492,63 +485,66 @@
                 </div>
             </div>
         </div>
-        @if (\Illuminate\Support\Facades\Gate::inspect('viewAccess', $user)->allowed())
-            <div class="col-xl-12 col-lg-12 col-md-12 mb-12 p-0">
+
+        <div class="row">
+            <div class="col-xl-8 col-lg-12 col-md-12">
                 <div class="card shadow mb-4">
                     <div class="card-header bg-primary py-3 d-flex flex-row align-items-center justify-content-between">
                         <h6 class="m-0 fw-bold text-white">
-                            Access
+                            Activity
                         </h6>
                     </div>
                     <div class="card-body">
-                        <form action="{{ route('user.update', $user->id) }}" method="POST">
-                            @method('PATCH')
-                            @csrf
-
-                            <p>Select none, one or multiple permissions for the user.</p>
-
-                            <table class="table table-bordered table-hover table-responsive w-100 d-block d-md-table">
-                                <thead>
-                                    <tr>
-                                        <th>Area</th>
-                                        @foreach($groups as $group)
-                                            <th class="text-center">{{ $group->name }} <i class="fas fa-question-circle text-gray-400" title="{{ $group->description }}"></i></th>
-                                        @endforeach
-                                    </tr>
-                                </thead>
-                                <tbody>
-
-                                    @foreach($areas as $area)
-                                        <tr>
-                                            <td>{{ $area->name }}</td>
-
-                                            @foreach($groups as $group)
-
-                                                @if (\Illuminate\Support\Facades\Gate::inspect('updateGroup', [$user, $group, $area])->allowed() && $group->id != 1)
-                                                    <td class="text-center"><input type="checkbox" name="{{ $area->id }}_{{ $group->name }}" {{ $user->groups()->where('group_id', $group->id)->where('area_id', $area->id)->count() ? "checked" : "" }}></td>
-                                                @else
-                                                    <td class="text-center"><input type="checkbox" {{ $user->groups()->where('group_id', $group->id)->where('area_id', $area->id)->count() ? "checked" : "" }} disabled></td>
-                                                @endif
-
-                                            @endforeach
-
-                                        </tr>
-                                    @endforeach
-
-                                </tbody>
-                            </table>
-
-                            @if (\Illuminate\Support\Facades\Gate::inspect('update', $user)->allowed())
-                                <div class="mb-3">
-                                    <button type="submit" class="btn btn-primary">Save access</button>
-                                </div>
-                            @endif
-
-                        </form>
+                        <div class="ratio ratio-21x9">
+                            <canvas id="activityChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
-        @endif
+
+            <div class="col-xl-4 col-lg-12 col-md-12">
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-primary py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 fw-bold text-white">
+                            Recent Connections
+                        </h6>
+                    </div>
+                    <div class="card-body {{ $recentAtcSessions->count() == 0 ? '' : 'p-0' }}">
+
+                        @if($recentAtcSessions->count() == 0)
+                            <p class="mb-0">No recent ATC sessions</p>
+                        @else
+                            <div class="table-responsive">
+                                <table class="table table-sm table-leftpadded mb-0" width="100%" cellspacing="0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th data-sortable="true">Callsign</th>
+                                            <th data-sortable="true">Date</th>
+                                            <th data-sortable="true">Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($recentAtcSessions as $session)
+                                        <tr>
+                                            <td>{{ $session['callsign'] }}</td>
+                                            <td>{{ isset($session['start']) ? Carbon\Carbon::parse($session['start'])->toEuropeanDateTime() : '—' }}</td>
+                                            <td>{{ $session['duration'] ?? '—' }}</td>
+                                        </tr>
+                                        @endforeach
+                                        <tr>
+                                            <td colspan="3" class="text-center">
+                                                <a href="https://stats.vatsim.net/stats/{{ $user->id }}" target="_blank" rel="noopener noreferrer">View additional sessions</a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -609,149 +605,100 @@
             CTR: 'rgba(85, 184, 255, 0.7)',
         };
         document.addEventListener("DOMContentLoaded", function () {
+            const chartElement = document.getElementById('activityChart');
+            if (!chartElement) return;
 
-            // Fetch activity data
-            fetch("https://statsim.net/atc/vatsimid/?vatsimid={{ $user->id }}&period=custom&from={{ now()->subMonths(11)->toDateString() }}+00%3A00&to={{ now()->toDateString() }}+22%3A00&json=true")
-                .then(response => response.json())
-                .then(data => {
-                    if(data && data.length > 0) {
+            // Calculate date range (11 months ago to now)
+            const fromDate = new Date();
+            fromDate.setMonth(fromDate.getMonth() - 11);
+            fromDate.setHours(0, 0, 0, 0);
 
-                        var positions = [];
+            const toDate = new Date();
+            toDate.setHours(23, 59, 59, 999);
 
-                        // Process each connection and calculate hours
-                        data.forEach(function (connection) {
-                            connection.logontime = new Date(connection.logontime * 1000)
-                            connection.logofftime = new Date(connection.logofftime * 1000)
-                            connection.hours = parseFloat(((connection.logofftime - connection.logontime) / 1000 / 60 / 60).toFixed(1))
-                            connection.callsignPrefix = connection.callsign.split('_')[0]
-                            connection.callsignSuffix = connection.callsign.split('_').pop()
+            const apiUrl = "{{ route('user.statistics.sessions', $user) }}?from="
+                + encodeURIComponent(fromDate.toISOString())
+                + "&to="
+                + encodeURIComponent(toDate.toISOString());
 
-                            if(!positions.includes(connection.callsignSuffix) && prefixes.includes(connection.callsignPrefix))
-                                positions.push(connection.callsignSuffix);
-                        })
-
-                        // Create chart labels based on the last 11 months
-                        var activity = []
-                        var otherActivity = [];
-                        var labels = [];
-                        var vaccActivity = [];
-
-                        positions.forEach(function(p){
-                            activity[p] = [];
-                        });
-
-                        for (var i = 11; i >= 0; i--) {
-                            labels.push(new Date(new Date().setMonth(new Date().getMonth() - i)).toLocaleString('default', { month: 'short' }));
-                            otherActivity[new Date(new Date().setMonth(new Date().getMonth() - i)).toLocaleString('default', { month: 'short' })] = 0;
-                            vaccActivity[new Date(new Date().setMonth(new Date().getMonth() - i)).toLocaleString('default', { month: 'short' })] = 0;
-
-                            positions.forEach(function(p){
-                                activity[p][new Date(new Date().setMonth(new Date().getMonth() - i)).toLocaleString('default', { month: 'short' })] = 0;
-                            });
-                        }
-
-                        data.forEach(function (connection) {
-                            var month = connection.logontime.toLocaleString('default', { month: 'short' })
-
-                            if(prefixes.includes(connection.callsignPrefix)){
-                                activity[connection.callsignSuffix][month] += connection.hours;
-                                vaccActivity[month] += connection.hours;
-                            } else {
-                                otherActivity[month] += connection.hours;
-                            }
-                        })
-
-                        // Define labels and chart data
-                        var chartData = Object.values(activity)
-
-                        var dataset = [
-                            {
-                                type: 'bar',
-                                label: 'Other vACCs',
-                                data: Object.values(otherActivity),
-                                stack: 'A',
-                                xAxisID: 'xBack',
-                                order: 2,
-                                backgroundColor: 'rgba(221, 53, 255, 0.7)',
-                                borderColor: 'rgb(221, 53, 255)',
-                                borderWidth: 4
-                            },{
-                                type: 'bar',
-                                label: '{{ env("APP_OWNER_NAME") }}',
-                                data: Object.values(vaccActivity),
-                                stack: 'A',
-                                xAxisID: 'xBack',
-                                order: 1,
-                                backgroundColor: 'transparent',
-                                borderColor: 'rgb(254, 197, 111)',
-                                borderWidth: 4
-                            }
-                        ];
-
-                        positions.forEach(function(p){
-                            dataset.push({
-                                type: 'bar',
-                                label: p,
-                                data: Object.values(activity[p]),
-                                borderWidth: 0,
-                                stack: 'B',
-                                xAxisID: 'xFront',
-                                order: 3,
-                                backgroundColor: colors[p]
-                            });
-                        });
-
-                        // Create the chart
-                        var chart = new Chart(
-                            document.getElementById('activityChart'),
-                            {
-                                data: {
-                                    labels: labels,
-                                    datasets: dataset
-                                },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    scales: {
-                                        xBack: {
-                                            type: 'category',
-                                            stacked: true,
-                                            display: false,
-                                        },
-                                        xFront: {
-                                            type: 'category',
-                                            stacked: true,
-                                            grid: {drawOnChartArea: false},
-                                        },
-                                        y: {
-                                            stacked: true
-                                        },
-                                    },
-                                    plugins: {
-                                        tooltip: {
-                                            callbacks: {
-                                                label: function(tooltipItem) {
-                                                    let label = tooltipItem.dataset.label || '';
-                                                    if (label) {
-                                                        label += ': ';
-                                                    }
-                                                    label += tooltipItem.formattedValue + ' hours';
-                                                    return label;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        );
-
-                    } else {
-                        document.getElementById('activityChart').parentElement.innerHTML = '<p class="mb-0">No data available</p>'
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json()
+                            .then(data => {
+                                // API returned an error (e.g., StatisticsApiException)
+                                throw new Error(data.error || `HTTP ${response.status}`);
+                            })
+                            .catch(() => Promise.reject(new Error(`HTTP ${response.status}`)));
                     }
+                    return response.json();
+                })
+                .then(data => {
+                    // Check if response contains an error (from StatisticsApiException)
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+
+                    // Handle empty response - user has no ATC sessions
+                    if (!Array.isArray(data) || data.length === 0) {
+                        chartElement.closest('.card-body').innerHTML = '<p class="mb-0">No ATC activity data available</p>';
+                        return;
+                    }
+
+                    // Process sessions and calculate hours
+                    const sessions = data.map(session => {
+                        const logonTime = new Date(session.logontime * 1000);
+                        const logoffTime = new Date(session.logofftime * 1000);
+                        // Calculate hours: difference is in milliseconds, convert to hours
+                        const hours = Number(((logoffTime - logonTime) / 3_600_000).toFixed(1));
+
+                        return {
+                            ...session,
+                            logontime: logonTime,
+                            logofftime: logoffTime,
+                            hours: hours,
+                        };
+                    });
+
+                    // Initialize activity object with last 12 months (include year to avoid cross-year collisions)
+                    const activity = {};
+                    const now = new Date();
+                    for (let i = 11; i >= 0; i--) {
+                        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                        const monthKey = monthDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+                        activity[monthKey] = 0;
+                    }
+
+                    // Aggregate hours by month
+                    sessions.forEach(session => {
+                        const monthKey = session.logontime.toLocaleString('default', { month: 'short', year: 'numeric' });
+                        if (activity[monthKey] !== undefined) {
+                            activity[monthKey] += session.hours;
+                        }
+                    });
+
+                    // Create chart
+                    new Chart(chartElement, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(activity),
+                            datasets: [{
+                                label: 'Hours online',
+                                data: Object.values(activity),
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                borderColor: 'rgb(54, 162, 235)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                        },
+                    });
                 })
                 .catch(error => {
-                    console.error(error);
-                    alert('An error occurred while fetching STATSIM hours data.');
+                    console.error('Statistics API error:', error);
+                    chartElement.closest('.card-body').innerHTML = '<p class="mb-0 text-danger">Failed to load activity data</p>';
                 });
         });
     </script>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Facades\DivisionApi;
+use App\Helpers\LogName;
 use App\Helpers\TrainingStatus;
 use App\Models\Area;
 use App\Models\Endorsement;
@@ -12,8 +13,11 @@ use App\Models\User;
 use App\Notifications\EndorsementCreatedNotification;
 use App\Notifications\EndorsementModifiedNotification;
 use App\Notifications\EndorsementRevokedNotification;
+use App\Services\ActivityLogService;
+use App\Services\DivisionApi\DivisionApiError;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 
 class EndorsementController extends Controller
@@ -21,7 +25,7 @@ class EndorsementController extends Controller
     /**
      * Display a listing of the Solo endorsement
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function indexSolos()
     {
@@ -52,7 +56,7 @@ class EndorsementController extends Controller
     /**
      * Display a listing of the users with examiner endorsements
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function indexExaminers()
     {
@@ -65,7 +69,7 @@ class EndorsementController extends Controller
     /**
      * Display a listing of the users with visiting endorsements
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function indexVisitors()
     {
@@ -78,7 +82,7 @@ class EndorsementController extends Controller
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function create($prefillUserId = null)
     {
@@ -99,7 +103,7 @@ class EndorsementController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function store(Request $request)
     {
@@ -133,7 +137,7 @@ class EndorsementController extends Controller
             $rating = Rating::find($data['ratingFACILITY']);
             $response = DivisionApi::assignTierEndorsement($user, $rating, Auth::id());
             if ($response && $response->failed()) {
-                return back()->withErrors('Request failed due to error in ' . DivisionApi::getName() . ' API: ' . $response->json()['message']);
+                return back()->withErrors(DivisionApiError::message($response));
             }
 
             // All clear, create endorsement
@@ -142,7 +146,7 @@ class EndorsementController extends Controller
             // Add ratings
             $endorsement->ratings()->save(Rating::find($data['ratingFACILITY']));
 
-            ActivityLogController::warning('ENDORSEMENT', 'Created facility endorsement ' .
+            ActivityLogService::warning(LogName::Endorsement, 'Created facility endorsement ' .
             ' ― User: ' . $endorsement->user_id .
             ' ― Rating: ' . Rating::find($data['ratingFACILITY'])->name);
 
@@ -158,7 +162,7 @@ class EndorsementController extends Controller
             $user = User::find($data['user']);
 
             // Check if user has active training
-            if (! $user->getActiveTraining(TrainingStatus::PRE_TRAINING->value)) {
+            if (! $user->getActiveTraining(TrainingStatus::PRE_TRAINING)) {
                 return back()->withInput()->withErrors($user->name . ' has no active training to link this endorsement to.');
             }
 
@@ -196,7 +200,7 @@ class EndorsementController extends Controller
             // All clear, call the API to create the endorsement
             $response = DivisionApi::assignSoloEndorsement($user, $position, Auth::id(), $expireDate);
             if ($response && $response->failed()) {
-                return back()->withErrors('Request failed due to error in ' . DivisionApi::getName() . ' API: ' . $response->json()['message']);
+                return back()->withErrors(DivisionApiError::message($response));
             }
 
             // All clear, create endorsement
@@ -209,12 +213,12 @@ class EndorsementController extends Controller
             // Add positions
             $endorsement->positions()->save(Position::where('callsign', $data['position'])->get()->first());
 
-            ActivityLogController::warning('ENDORSEMENT', 'Created SOLO endorsement ' .
+            ActivityLogService::warning(LogName::Endorsement, 'Created SOLO endorsement ' .
             ' ― User: ' . $endorsement->user_id .
             ' ― Positions: ' . $data['position']);
 
             // Log this new endorsement to the user's active training
-            TrainingActivityController::create($user->trainings->where('status', '>=', 0)->first()->id, 'ENDORSEMENT', $endorsement->id, null, Auth::user()->id, $endorsement->positions->pluck('callsign')->implode(', '));
+            TrainingActivityController::create($user->trainings->filter(fn ($training) => $training->status->isOpen())->first()->id, 'ENDORSEMENT', $endorsement->id, null, Auth::user()->id, $endorsement->positions->pluck('callsign')->implode(', '));
 
             $user->notify(new EndorsementCreatedNotification($endorsement));
 
@@ -238,7 +242,7 @@ class EndorsementController extends Controller
             $rating = Rating::find($data['ratingGRP']);
             $response = DivisionApi::assignExaminer($user, $rating, Auth::id());
             if ($response && $response->failed()) {
-                return back()->withErrors('Request failed due to error in ' . DivisionApi::getName() . ' API: ' . $response->json()['message']);
+                return back()->withErrors(DivisionApiError::message($response));
             }
 
             // All clear, create endorsement
@@ -248,7 +252,7 @@ class EndorsementController extends Controller
             $endorsement->ratings()->save(Rating::find($data['ratingGRP']));
             $endorsement->areas()->saveMany(Area::find($data['areas']));
 
-            ActivityLogController::warning('ENDORSEMENT', 'Created ' . $endorsementType . ' endorsement ' .
+            ActivityLogService::warning(LogName::Endorsement, 'Created ' . $endorsementType . ' endorsement ' .
             ' ― User: ' . $endorsement->user_id .
             ' ― Rating: ' . $data['ratingGRP'] .
             ' ― Areas: ' . implode(',', $data['areas']));
@@ -276,7 +280,7 @@ class EndorsementController extends Controller
             $endorsement->areas()->saveMany(Area::find($data['areas']));
             $endorsement->ratings()->save(Rating::find($data['ratingGRP']));
 
-            ActivityLogController::warning('ENDORSEMENT', 'Created ' . $endorsementType . ' endorsement ' .
+            ActivityLogService::warning(LogName::Endorsement, 'Created ' . $endorsementType . ' endorsement ' .
             ' ― User: ' . $endorsement->user_id .
             ' ― Areas: ' . implode(',', $data['areas']));
 
@@ -290,8 +294,8 @@ class EndorsementController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Models\Endorsement  $endorsement
-     * @return \Illuminate\Http\Response
+     * @param  Endorsement  $endorsement
+     * @return Response
      */
     public function destroy($endorsementId)
     {
@@ -306,19 +310,19 @@ class EndorsementController extends Controller
         if ($endorsement->type == 'EXAMINER') {
             $response = DivisionApi::removeExaminer($user, $endorsement, Auth::id());
             if ($response && $response->failed()) {
-                return back()->withErrors('Request failed due to error in ' . DivisionApi::getName() . ' API: ' . $response->json()['message']);
+                return back()->withErrors(DivisionApiError::message($response));
             }
         } elseif ($endorsement->type == 'FACILITY') {
             if (isset($endorsement->ratings->first()->endorsement_type)) {
                 $response = DivisionApi::revokeTierEndorsement($endorsement->ratings->first()->endorsement_type, $endorsement->user->id, $endorsement->ratings->first()->name);
                 if ($response && $response->failed()) {
-                    return back()->withErrors('Request failed due to error in ' . DivisionApi::getName() . ' API: ' . $response->json()['message']);
+                    return back()->withErrors(DivisionApiError::message($response));
                 }
             }
         } elseif ($endorsement->type == 'SOLO') {
             $response = DivisionApi::revokeSoloEndorsement($endorsement);
             if ($response && $response->failed()) {
-                return back()->withErrors('Request failed due to error in ' . DivisionApi::getName() . ' API: ' . $response->json()['message']);
+                return back()->withErrors(DivisionApiError::message($response));
             }
         }
 
@@ -327,7 +331,7 @@ class EndorsementController extends Controller
         $endorsement->valid_to = now();
         $endorsement->save();
 
-        ActivityLogController::warning('ENDORSEMENT', 'Deleted ' . $user->name . '\'s ' . $endorsement->type . ' endorsement');
+        ActivityLogService::warning(LogName::Endorsement, 'Deleted ' . $user->name . '\'s ' . $endorsement->type . ' endorsement');
         if ($endorsement->type == 'SOLO') {
             $endorsement->user->notify(new EndorsementRevokedNotification($endorsement));
 
@@ -340,8 +344,8 @@ class EndorsementController extends Controller
     /**
      * Shorten the specified resource from storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @param  Request  $request
+     * @return Response
      */
     public function shorten($endorsementId, $date)
     {
@@ -359,14 +363,14 @@ class EndorsementController extends Controller
         // Push updated date to API
         $response = DivisionApi::assignSoloEndorsement($endorsement->user, $endorsement->positions->first(), Auth::id(), $date);
         if ($response && $response->failed()) {
-            return back()->withErrors('Request failed due to error in ' . DivisionApi::getName() . ' API: ' . $response->json()['message']);
+            return back()->withErrors(DivisionApiError::message($response));
         }
 
         // Save new date
         $endorsement->valid_to = $date;
         $endorsement->save();
 
-        ActivityLogController::warning('ENDORSEMENT', 'Shortened ' . User::find($endorsement->user_id)->name . '\'s ' . $endorsement->type . ' endorsement to date ' . $date);
+        ActivityLogService::warning(LogName::Endorsement, 'Shortened ' . User::find($endorsement->user_id)->name . '\'s ' . $endorsement->type . ' endorsement to date ' . $date);
         $endorsement->user->notify(new EndorsementModifiedNotification($endorsement));
 
         return redirect()->back()->withSuccess(User::find($endorsement->user_id)->name . "'s " . $endorsement->type . ' endorsement shortened to ' . Carbon::parse($date)->toEuropeanDateTime() . '. E-mail sent to student.');
@@ -377,7 +381,7 @@ class EndorsementController extends Controller
      *
      * @param  string  $endorsementType
      * @param  string  $valid_to
-     * @return \App\Models\Endorsement
+     * @return Endorsement
      */
     private function createEndorsementModel($endorsementType, User $user, $valid_to = null)
     {

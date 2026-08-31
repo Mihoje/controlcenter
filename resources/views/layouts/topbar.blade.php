@@ -1,21 +1,15 @@
-<nav class="navbar navbar-expand bg-white topbar {{ (\Auth::user()->isModeratorOrAbove()) ? 'topbar-justify-moderator' : 'topbar-justify-user' }} mb-4 ps-4 pe-4 static-top shadow">
+<nav class="navbar navbar-expand bg-white topbar {{ (\Auth::user()->can('users.manage')) ? 'topbar-justify-moderator' : 'topbar-justify-user' }} mb-4 ps-4 pe-4 static-top shadow">
 
     <a class="sidebar-brand sidebar-brand-topbar align-items-center" href="{{ route('dashboard') }}">
         <div class="sidebar-brand-icon">
-            <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 448 512" xml:space="preserve">
-                <path d="M160,24c0-13.2,10.7-24,24-24h80c13.3,0,24,10.8,24,24s-10.7,24-24,24h-16v48h40c17.7,0,32,14.3,32,32h93.2
-                c21.5,0,36.9,20.7,30.7,41.2l-41.2,137.3c7.9,3.9,13.3,12.1,13.3,21.5c0,13.3-10.7,24-24,24h-24v136c0,13.3-10.7,24-24,24
-                s-24-10.7-24-24V352H128v136c0,13.3-10.7,24-24,24c-13.2,0-24-10.7-24-24V352H56c-13.2,0-24-10.7-24-24c0-9.4,5.4-17.6,13.3-21.5
-                L4.1,169.2c-6.2-20.5,9.2-41.2,30.6-41.2H128c0-17.7,14.3-32,32-32h40V48h-16C170.7,48,160,37.2,160,24L160,24z M128,304V176H56.3
-                l38.4,128H128z M176,304h96V176h-96V304z M320,176v128h33.3l38.4-128H320z"/>
-            </svg>
+            {!! file_get_contents(public_path('images/control-tower.svg')) !!}
         </div>
 
-        <div class="sidebar-brand-text mx-3 text-primary">{{ config('app.name') }}</div>
+        <div class="sidebar-brand-text mx-3">{{ config('app.name') }}</div>
     </a>
 
     {{-- Topbar Desktop Search --}}
-    @if(\Auth::user()->isModeratorOrAbove())
+    @can('users.manage')
         <form class="d-none d-md-inline-block my-2 my-md-0 mw-100 navbar-search" id="user-search-form-desktop">
             <div class="input-group">
                 <div class="search input-group input-lg">
@@ -31,12 +25,12 @@
                 </div>
             </div>
         </form>
-    @endif
+    @endcan
 
     {{-- Topbar Navbar --}}
     <ul class="navbar-nav">
 
-        @if(\Auth::user()->isModeratorOrAbove())
+        @can('users.manage')
 
             {{-- Search Dropdown (Visible Only XS) --}}
             <li class="nav-item dropdown no-arrow d-md-none">
@@ -61,7 +55,15 @@
                 </div>
             </li>
 
-        @endif
+        @endcan
+
+        {{-- Nav Item - Theme Toggle (cycles system -> light -> dark) --}}
+        <li class="nav-item no-arrow">
+            <button type="button" class="nav-link" id="theme-toggle" title="Theme preference" data-theme-url="{{ route('user.settings.theme') }}">
+                <i class="fas fa-fw fa-desktop" data-theme-icon></i>
+                <span class="visually-hidden">Change theme</span>
+            </button>
+        </li>
 
         <div class="topbar-divider d-none d-lg-block"></div>
 

@@ -6,12 +6,15 @@ use App\Contracts\DivisionApiContract;
 use App\Helpers\VatsimRating;
 use App\Models\Area;
 use App\Models\Endorsement;
-use App\Models\Group;
 use App\Models\Position;
 use App\Models\Rating;
 use App\Models\User;
 use Carbon\Carbon;
+use GuzzleHttp\Psr7\Response as GuzzleResponse;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class VATEUD implements DivisionApiContract
 {
@@ -37,35 +40,52 @@ class VATEUD implements DivisionApiContract
 
     /**
      * Call the API with all headers predefined
-     *
-     * @return \Illuminate\Http\Client\Response
      */
-    private function callApi(string $url, string $method = 'GET', ?array $data = null, ?array $multipartData = null)
+    private function callApi(string $url, string $method = 'GET', ?array $data = null, ?array $multipartData = null): Response
     {
-        $userAgent = 'Control Center v' . config('app.version') . ' (' . config('app.owner_code') . ')';
+        $request = Http::withHeaders([
+            'Accept' => 'application/json',
+            'User-Agent' => 'Control Center v' . config('app.version') . ' (' . config('app.owner_code') . ')',
+            'X-API-KEY' => $this->apiToken,
+        ]);
 
-        // Run a normal request if no multipart data is provided
-        if ($multipartData === null) {
-            return Http::withHeaders([
-                'Accept' => 'application/json',
-                'User-Agent' => $userAgent,
-                'X-API-KEY' => $this->apiToken,
-            ])->$method($this->baseUrl . $url, $data);
-        } else {
-            return Http::withHeaders([
-                'Accept' => 'application/json',
-                'User-Agent' => $userAgent,
-                'X-API-KEY' => $this->apiToken,
-            ])->asMultipart()->$method($this->baseUrl . $url, $multipartData);
+        try {
+            // Run a normal request if no multipart data is provided
+            if ($multipartData === null) {
+                return $request->$method($this->baseUrl . $url, $data);
+            }
+
+            return $request->asMultipart()->$method($this->baseUrl . $url, $multipartData);
+        } catch (ConnectionException $e) {
+            return $this->unreachable($url, $method, $e);
         }
+    }
 
-        return false;
+    /**
+     * Stand in for the response we never got.
+     *
+     * An unreachable API (DNS failure, timeout, TLS error) throws instead of
+     * answering, and callers all branch on $response->failed(). Returning a
+     * failed response keeps them on their error path: the alternative, a null
+     * or a thrown exception, either reads as success or escapes as a 500.
+     */
+    private function unreachable(string $url, string $method, ConnectionException $e): Response
+    {
+        Log::error('Could not reach the ' . $this->getName() . ' API', [
+            'method' => $method,
+            'url' => $this->baseUrl . $url,
+            'reason' => $e->getMessage(),
+        ]);
+
+        return new Response(new GuzzleResponse(503, ['Content-Type' => 'application/json'], json_encode([
+            'message' => 'Could not reach the ' . $this->getName() . ' API.',
+        ])));
     }
 
     /**
      * Assign a mentor to a user
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function assignMentor(User $user, int $requesterId)
     {
@@ -77,12 +97,12 @@ class VATEUD implements DivisionApiContract
     /**
      * Remove a mentor from a user
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function removeMentor(User $user, int $requesterId)
     {
         // Only remove from API if this is the last area in CC.
-        $mentorAssignments = Group::mentors()->where('id', $user->id)->count();
+        $mentorAssignments = $user->roleAssignments()->where('role', 'mentor')->count();
         if ($mentorAssignments <= 1) {
             return $this->callApi('/facility/training/remove/' . $user->id . '/mentor', 'POST', [
                 'user_cid' => $requesterId,
@@ -95,12 +115,12 @@ class VATEUD implements DivisionApiContract
     /**
      * Assign an examiner to a user
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function assignExaminer(User $user, Rating $rating, int $requesterId)
     {
         // Only assign if the user is S3 or higher, this is VATEUD's definition of examiner
-        if ($user->rating >= VatsimRating::S3->value) {
+        if ($user->rating->isGreaterThanOrEqual(VatsimRating::S3)) {
             return $this->callApi('/facility/training/assign/' . $user->id . '/examiner', 'POST', [
                 'user_cid' => $requesterId,
             ]);
@@ -112,12 +132,12 @@ class VATEUD implements DivisionApiContract
     /**
      * Remove an examiner from a user
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function removeExaminer(User $user, Endorsement $endorsement, int $requesterId)
     {
         // Only revoke if the endorsement rating is S3 or higher, this is VATEUD's definition of examiner
-        if ($endorsement->ratings->first()->vatsim_rating >= VatsimRating::S3->value) {
+        if ($endorsement->ratings->first()->vatsim_rating->isGreaterThanOrEqual(VatsimRating::S3)) {
             return $this->callApi('/facility/training/remove/' . $user->id . '/examiner', 'POST', [
                 'user_cid' => $requesterId,
             ]);
@@ -129,7 +149,7 @@ class VATEUD implements DivisionApiContract
     /**
      * Get the user's tier endorsements
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function getTierEndorsements(int $tier)
     {
@@ -139,7 +159,7 @@ class VATEUD implements DivisionApiContract
     /**
      * Assign a training position to a user
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function assignTierEndorsement(User $user, Rating $rating, int $requesterId)
     {
@@ -165,7 +185,7 @@ class VATEUD implements DivisionApiContract
     /**
      * Remove a training position from a user
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function revokeTierEndorsement(string $tier, int $userId, string $endorsementName)
     {
@@ -175,7 +195,12 @@ class VATEUD implements DivisionApiContract
             $endpointTierString = 'tier-2';
         }
 
-        $externalEndorsements = $this->callApi('/facility/endorsements/' . $endpointTierString, 'GET')->json()['data'];
+        $lookup = $this->callApi('/facility/endorsements/' . $endpointTierString, 'GET');
+        if ($lookup->failed()) {
+            return $lookup;
+        }
+
+        $externalEndorsements = $lookup->json()['data'] ?? [];
 
         foreach ($externalEndorsements as $externalEndorsement) {
             if ($externalEndorsement['user_cid'] == $userId && $externalEndorsement['position'] == $endorsementName) {
@@ -189,7 +214,7 @@ class VATEUD implements DivisionApiContract
     /**
      * Assign a solo endorsement to a user
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function assignSoloEndorsement(User $user, Position $position, int $requesterId, ?Carbon $expireAt = null)
     {
@@ -204,11 +229,16 @@ class VATEUD implements DivisionApiContract
     /**
      * Remove a solo endorsement from a user
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function revokeSoloEndorsement(Endorsement $endorsement)
     {
-        $externalEndorsements = $this->callApi('/facility/endorsements/solo', 'GET')->json()['data'];
+        $lookup = $this->callApi('/facility/endorsements/solo', 'GET');
+        if ($lookup->failed()) {
+            return $lookup;
+        }
+
+        $externalEndorsements = $lookup->json()['data'] ?? [];
         foreach ($externalEndorsements as $externalEndorsement) {
             if ($externalEndorsement['user_cid'] == $endorsement->user_id && $externalEndorsement['position'] == $endorsement->positions->first()->callsign) {
                 return $this->callApi('/facility/endorsements/solo/' . $externalEndorsement['id'], 'DELETE');
@@ -221,7 +251,7 @@ class VATEUD implements DivisionApiContract
     /**
      * Upload exam results
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function uploadExamResults(int $studentId, int $examinerId, bool $pass, string $positionName, string $filePath)
     {
@@ -248,7 +278,7 @@ class VATEUD implements DivisionApiContract
     /**
      * Request a rating upgrade for a user
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function requestRatingUpgrade(User $user, Rating $rating, int $requesterId)
     {
@@ -261,16 +291,21 @@ class VATEUD implements DivisionApiContract
     /**
      * Assign a theory exam for a user
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function assignTheoryExam(User $user, Rating $rating, int $requesterId)
     {
 
         // call facility/training/exams to get different exams, and assign the one that has flag_exam_type corresponding with the rating
-        $availableExams = $this->callApi('/facility/training/exams', 'GET')->json()['data'];
+        $lookup = $this->callApi('/facility/training/exams', 'GET');
+        if ($lookup->failed()) {
+            return $lookup;
+        }
+
+        $availableExams = $lookup->json()['data'] ?? [];
         foreach ($availableExams as $exam) {
             // If the flag exam type is the same as the rating - 1, assign it. This is because VATEUD calls S2 = 2 instead of 3 like VATSIM does.
-            if ($exam['flag_exam_type'] == $rating->vatsim_rating - 1) {
+            if ($exam['flag_exam_type'] == $rating->vatsim_rating->value - 1) {
                 return $this->callApi('/facility/training/exams/assign', 'POST', [
                     'user_cid' => $user->id,
                     'exam_id' => $exam['id'],
@@ -283,7 +318,7 @@ class VATEUD implements DivisionApiContract
     /**
      * Get the user's exams
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function getUserExams(User $user)
     {
@@ -335,7 +370,7 @@ class VATEUD implements DivisionApiContract
         $exams = $this->getUserExams($user);
         if ($exams && $exams->successful()) {
             foreach ($exams->json()['data']['results'] as $exam) {
-                if ($exam['flag_exam_type'] == $rating->vatsim_rating - 1 && $exam['passed'] == true) {
+                if ($exam['flag_exam_type'] == $rating->vatsim_rating->value - 1 && $exam['passed'] == true) {
                     return true;
                 }
             }
@@ -347,7 +382,7 @@ class VATEUD implements DivisionApiContract
     /**
      * Get the roster
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function getRoster()
     {
@@ -357,7 +392,7 @@ class VATEUD implements DivisionApiContract
     /**
      * Assign a user to the roster
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function assignRosterUser(int $userId)
     {
@@ -367,7 +402,7 @@ class VATEUD implements DivisionApiContract
     /**
      * Remove a user from the roster
      *
-     * @return \Illuminate\Http\Client\Response
+     * @return Response
      */
     public function removeRosterUser(int $userId)
     {

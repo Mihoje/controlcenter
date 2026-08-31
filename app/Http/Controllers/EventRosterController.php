@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 class EventRosterController extends Controller
 {
     public function show($id){
-        if(!Auth::user()->isEventOrAbove()){
+        if(!Auth::user()->hasPermission('events.manage')){
             return redirect('/dashboard');
         }
 
@@ -82,7 +82,7 @@ class EventRosterController extends Controller
     }
 
     public function save(Request $request, $id){
-        if(!Auth::user()->isEventOrAbove()){
+        if(!Auth::user()->hasPermission('events.manage')){
             return redirect('/dashboard');
         }
 
@@ -192,7 +192,7 @@ class EventRosterController extends Controller
     }
 
     public function bookPositions($id){
-        if(!Auth::user()->isEventOrAbove()){
+        if(!Auth::user()->hasPermission('events.manage')){
             return redirect('/dashboard');
         }
 
@@ -247,7 +247,7 @@ class EventRosterController extends Controller
     }
 
     public function publish(Request $request, $id){
-        if(!Auth::user()->isEventOrAbove()){
+        if(!Auth::user()->hasPermission('events.manage')){
             return redirect('/dashboard');
         }
 

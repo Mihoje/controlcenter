@@ -13,7 +13,7 @@ class BlockedController extends Controller
 {
     public function show(){
 
-        if(!Auth::user()->isAdmin()){
+        if(!Auth::user()->hasGlobalRole('admin')){
             throw new HttpException(401);
         }
 
@@ -22,9 +22,9 @@ class BlockedController extends Controller
 
         return view('admin.blocked', compact('blockedusers', 'users'));
     }
-    
+
     public function store(Request $request){
-        if(!Auth::user()->isAdmin()){
+        if(!Auth::user()->hasGlobalRole('admin')){
             throw new HttpException(401);
         }
         $validatedData = $request->validate([
@@ -41,13 +41,13 @@ class BlockedController extends Controller
         if(Auth::user()->is($user)){
             return redirect()->route('blocked.show')->withErrors('Don\'t block yourself, silly!');
         }
-    
+
         $b = new BlockedUser();
 
         $b->user()->associate($user);
         $b->issuer()->associate(Auth::user());
         $b->reason = $request->reason;
-        
+
         $b->save();
 
         $user->update(['token_expires'=>(Carbon::now())->valueOf(),'access_token'=>null,'refresh_token'=>null]);
@@ -56,10 +56,10 @@ class BlockedController extends Controller
     }
 
     public function delete($id){
-        if(!Auth::user()->isAdmin()){
+        if(!Auth::user()->hasGlobalRole('admin')){
             throw new HttpException(401);
         }
-        
+
         $b = BlockedUser::find($id);
 
         if(!$b){

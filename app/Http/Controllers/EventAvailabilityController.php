@@ -18,7 +18,7 @@ class EventAvailabilityController extends Controller
             return redirect('/dashboard')->withErrors(['Event doens\'t exist']);
         }
 
-        if(!$event->notification_sent && !Auth::user()->isEventOrAbove()){ //check if the event hasn't been posted and the user is not events or above
+        if(!$event->notification_sent && !Auth::user()->hasPermission('events.manage')){ //check if the event hasn't been posted and the user is not events or above
             return redirect('/dashboard')->withErrors(['Event dosen\'t exist']);
         }
 
@@ -36,7 +36,7 @@ class EventAvailabilityController extends Controller
             return redirect('/dashboard')->withErrors(['Event doens\'t exist']);
         }
 
-        if(!$event->notification_sent && !Auth::user()->isEventOrAbove()){ //check if the event hasn't been posted and the user is not events or above
+        if(!$event->notification_sent && !Auth::user()->hasPermission('events.manage')){ //check if the event hasn't been posted and the user is not events or above
             return redirect('/dashboard')->withErrors(['Event doens\'t exist']);
         }
 
@@ -102,7 +102,7 @@ class EventAvailabilityController extends Controller
             return redirect('/dashboard')->withErrors(['Event doens\'t exist']);
         }
 
-        if(!$event->notification_sent && !Auth::user()->isEventOrAbove()){ //check if the event hasn't been posted and the user is not events or above
+        if(!$event->notification_sent && !Auth::user()->hasPermission('events.manage')){ //check if the event hasn't been posted and the user is not events or above
             return redirect('/dashboard')->withErrors(['Event doens\'t exist']);
         }
 
@@ -126,7 +126,7 @@ class EventAvailabilityController extends Controller
             return redirect('/dashboard')->withErrors(['Event doens\'t exist']);
         }
 
-        if(!$event->notification_sent && !Auth::user()->isEventOrAbove()){ //check if the event hasn't been posted and the user is not events or above
+        if(!$event->notification_sent && !Auth::user()->hasPermission('events.manage')){ //check if the event hasn't been posted and the user is not events or above
             return redirect('/dashboard')->withErrors(['Event doens\'t exist']);
         }
 

@@ -9,9 +9,13 @@ use App\Models\Area;
 use App\Models\AtcActivity;
 use App\Models\User;
 use Carbon\Carbon;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Psr\Http\Message\ResponseInterface;
 
 class UpdateAtcHours extends Command
 {
@@ -86,7 +90,7 @@ class UpdateAtcHours extends Command
         $this->info('Updating member ATC hours...');
 
         foreach ($members as $member) {
-            $client = new \GuzzleHttp\Client();
+            $client = app(Client::class);
             if (App::environment('production')) {
                 $url = $this->getQueryString($member->id);
             } else {
@@ -132,14 +136,32 @@ class UpdateAtcHours extends Command
     {
         $this->info('Updating ATC hours for member: ' . $member->id);
 
+        $periodStart = Carbon::now()->subMonths($this->qualificationPeriod);
+
         foreach (Area::all() as $area) {
-            $hoursActiveInArea = $sessions
-                ->filter(fn ($session) => Vatsim::isDivisionCallsign($session->callsign, $divisionCallsignPrefixes[$area->id]))
+            $sessionsInArea = $sessions
+                ->filter(fn ($session) => Vatsim::isDivisionCallsign($session->callsign, $divisionCallsignPrefixes[$area->id]));
+
+            $sessionsInPeriod = $sessionsInArea
+                ->filter(fn ($session) => Carbon::parse($session->start) >= $periodStart);
+
+            $hoursInPeriod = $sessionsInPeriod
                 ->map(function ($session) {
                     return floatval($session->minutes_on_callsign);
                 })
                 ->sum()
                 / 60;
+
+            $hoursActiveInArea = $sessionsInArea
+                ->map(function ($session) {
+                    return floatval($session->minutes_on_callsign);
+                })
+                ->sum()
+                / 60;
+
+            $lastConnection = $sessionsInPeriod
+                ->sortByDesc(fn ($session) => Carbon::parse($session->start))
+                ->first()?->start ?? null;
 
             if (! App::environment('production')) {
                 $this->info('Updating ATC hours for member: ' . $member->id . ' in area: ' . $area->id . ' to: ' . $hoursActiveInArea . ' hours');
@@ -149,13 +171,16 @@ class UpdateAtcHours extends Command
             try {
                 $activity = AtcActivity::where('user_id', $member->id)->where('area_id', $area->id)->firstOrFail();
                 $activity->hours = $hoursActiveInArea;
+                $activity->last_online = $lastConnection;
+                $activity->hours_in_period = $hoursInPeriod;
                 $activity->save();
-            } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            } catch (ModelNotFoundException $e) {
                 if ($hoursActiveInArea > 0) {
                     AtcActivity::create([
                         'user_id' => $member->id,
                         'area_id' => $area->id,
                         'hours' => $hoursActiveInArea,
+                        'last_online' => $lastConnection,
                     ]);
                 }
             }
@@ -165,13 +190,13 @@ class UpdateAtcHours extends Command
     /**
      * Make HTTP GET request
      *
-     * @return \Psr\Http\Message\ResponseInterface|null
+     * @return ResponseInterface|null
      */
-    private function makeHttpGetRequest(\GuzzleHttp\Client $client, string $url)
+    private function makeHttpGetRequest(Client $client, string $url)
     {
         try {
             $response = $client->get($url);
-        } catch (\GuzzleHttp\Exception\GuzzleException $exception) {
+        } catch (GuzzleException $exception) {
             Log::error(
                 'Hit exception while updating atc_active. URL was: ' . $url .
                     '. HTTP status code was: ' . $exception->getCode() .

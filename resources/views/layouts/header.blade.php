@@ -7,9 +7,29 @@
 
 <title>@yield('title', 'Home') | {{ config('app.name') }}</title>
 
-@vite(['resources/sass/app.scss'])
+{{-- Inline theme script to prevent flash of wrong theme --}}
+{{-- Only applies explicit (non-system) preferences synchronously. All other logic in theme.js --}}
+<script>
+(function() {
+    var storedPreference = localStorage.getItem('user_theme_preference') ||
+                          document.documentElement.getAttribute('data-user-theme') ||
+                          'system';
 
-{{-- Custom fonts --}} 
+    // Resolve to the effective (light/dark) theme. 'system' is watched by
+    // theme.js after load; here we just detect once to avoid FOUC.
+    var effective = (storedPreference === 'light' || storedPreference === 'dark')
+        ? storedPreference
+        : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+    // data-bs-theme mirrors data-theme so Bootstrap's dark cascade applies.
+    document.documentElement.setAttribute('data-theme', effective);
+    document.documentElement.setAttribute('data-bs-theme', effective);
+})();
+</script>
+
+@vite(['resources/js/theme.js', 'resources/sass/app.scss'])
+
+{{-- Custom fonts --}}
 <link href="https://fonts.googleapis.com/css?family=Roboto:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
 
 {{-- Favicon --}}

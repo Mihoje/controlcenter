@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\Admin\PositionController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
@@ -80,15 +81,16 @@ Route::middleware(['auth', 'activity'])->group(function () {
     // Users
     Route::controller(UserController::class)->group(function () {
         Route::get('/user/{user}', 'show')->name('user.show');
-        Route::patch('/user/{user}', 'update')->name('user.update');
         Route::get('/user/{user}/reports', 'reports')->name('user.reports');
         Route::get('/settings', 'settings')->name('user.settings');
         Route::post('/settings', 'settings_update')->name('user.settings.store');
+        Route::post('/settings/theme', 'settings_update_theme')->name('user.settings.theme');
         Route::get('/settings/extendworkmail', 'extendWorkmail')->name('user.settings.extendworkmail');
 
         // Internal user search
         Route::get('/user/search/find', 'search')->name('user.search');
         Route::get('/user/search/vatsimhours', 'fetchVatsimHours')->name('user.vatsimhours');
+        Route::get('/user/{user}/statistics/sessions', 'fetchStatisticsSessions')->name('user.statistics.sessions');
     });
 
     // Reports
@@ -99,6 +101,7 @@ Route::middleware(['auth', 'activity'])->group(function () {
         Route::get('/reports/activities/{id}', 'activities')->name('reports.activities.area');
         Route::get('/reports/mentors', 'mentors')->name('reports.mentors');
         Route::get('/reports/access', 'access')->name('reports.access');
+        Route::get('/reports/feedback', 'feedback')->name('reports.feedback');
 
         Route::get('/reports/members', 'members')->name('reports.members');
     });
@@ -110,6 +113,8 @@ Route::middleware(['auth', 'activity'])->group(function () {
     Route::get('/admin/templates/{id}', [NotificationController::class, 'index'])->name('admin.templates.area');
     Route::post('/admin/templates/update', [NotificationController::class, 'update'])->name('admin.templates.update');
     Route::get('/admin/log', [ActivityLogController::class, 'index'])->name('admin.logs');
+    Route::resource('/admin/positions', PositionController::class)->except(['show']);
+    Route::get('/admin/positions/{area}', [PositionController::class, 'index'])->name('positions.index.area');
 
     // Training routes
     Route::controller(TrainingController::class)->group(function () {
@@ -241,13 +246,14 @@ Route::middleware(['auth', 'activity'])->group(function () {
 
     //Feedback
     Route::controller(FeedbackController::class)->group(function(){
+        Route::get('/feedback/create', 'create')->name('feedback');
         Route::get('/feedback/list', 'show')->name('feedback.list');
         Route::get('/feedback/list/{id}', 'show')->name('feedback.list.user');
-        Route::get('/feedback/create', 'create')->name('feedback.create');
         Route::get('/feedback/show', 'show')->name('feedback.show');
         Route::post('/feedback/store', 'store')->name('feedback.store');
         Route::post('/feedback/ack', 'acknowledge')->name('feedback.acknowledge');
         Route::post('/feedback/pub', 'publish')->name('feedback.publish');
+        Route::patch('/feedback/{feedback}', 'update')->name('feedback.update');
     });
 
     //Files main

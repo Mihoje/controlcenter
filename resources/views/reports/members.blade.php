@@ -76,7 +76,7 @@
             <div class="card-header bg-primary py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 fw-bold text-white">
                     vACC users by rating
-                </h6> 
+                </h6>
             </div>
             <div class="card-body d-flex align-content-center justify-content-center" style="position: relative; max-height: 60vh;">
                 <canvas id="ratingsChart"></canvas>
@@ -89,7 +89,7 @@
             <div class="card-header bg-primary py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 fw-bold text-white">
                     Active ATC by rating
-                </h6> 
+                </h6>
             </div>
             <div class="card-body d-flex align-content-center justify-content-center" style="position: relative; max-height: 60vh;">
                 <canvas id="atcChart"></canvas>
@@ -132,6 +132,19 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+        @php
+            if(!isset($ratingUsers)){
+                $ratingUsers = [];
+            }
+
+            if(!isset($ratingActiveAtc)){
+                $ratingActiveAtc = [];
+            }
+
+            if(!isset($statsHistory)){
+                $statsHistory = [];
+            }
+        @endphp
         const ratingsData = {!! json_encode($ratingUsers) !!};
         const activeAtcRatingsData = {!! json_encode($ratingActiveAtc) !!}
 
@@ -184,7 +197,7 @@
 
         const ratingDataChart = new Chart(ratingsCanvas, {
             type: 'pie',
-            data: { 
+            data: {
                 datasets: [{
                     data: Object.values(ratingsData)
                 }],
@@ -199,7 +212,7 @@
                                 const s = sum(Object.values(ratingsData));
                                 return [`${c.formattedValue} user${c.formattedValue!=1?'s':''}`, `${ Math.round((c.formattedValue / s) * 10000) / 100 }%`];
                             }
-                        }  
+                        }
                     },
                     legend: {
                         position: 'top',
@@ -233,7 +246,7 @@
                                 const s = sum(Object.values(activeAtcRatingsData));
                                 return [`${c.formattedValue} controller${c.formattedValue!=1?'s':''}`, `${ Math.round((c.formattedValue / s) * 10000) / 100 }%`];
                             }
-                        }  
+                        }
                     },
                     legend: {
                         position: 'top',

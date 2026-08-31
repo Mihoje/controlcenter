@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Storage;
 class EventController extends Controller
 {
     public function create(){
-        if(!Auth::user()->isEventOrAbove()){
+        if(!Auth::user()->hasPermission('events.manage')){
             return redirect('/dashboard');
         }
 
@@ -32,7 +32,7 @@ class EventController extends Controller
     }
 
     public function delete($id){
-        if(!Auth::user()->isAdmin() && !Auth::user()->isEvent()){
+        if(!Auth::user()->hasPermission('events.manage')){
             return redirect('/dashboard')->withErrors(['If you see this error, report to Mihail with error code: 0x5545123']);
         }
 
@@ -58,11 +58,7 @@ class EventController extends Controller
     }
 
     public function publish($id){
-        /*if(!Auth::user()->isEventOrAbove()){
-            return redirect('/dashboard');
-        }*/
-        //Milan da ima permission
-        if(!Auth::user()->isAdmin() && !Auth::user()->isEvent()){
+        if(!Auth::user()->hasPermission('events.manage')){
             return redirect('/dashborad')->withErrors(['Not authorized to publish events']);
         }
 
@@ -86,7 +82,7 @@ class EventController extends Controller
 
     public function store(Request $request) {
 
-        if(!Auth::user()->isEventOrAbove()){
+        if(!Auth::user()->hasPermission('events.manage')){
             return redirect('/dashboard');
         }
 
@@ -143,8 +139,7 @@ class EventController extends Controller
     }
 
     protected function sendNotificationForEvent($event){
-        //Milan da ima permission
-        if(!Auth::user()->isAdmin() && !Auth::user()->isEvent()) return false;
+        if(!Auth::user()->hasPermission('events.manage')) return false;
 
         $webhook = config('vatadria.discord_webhooks.events');
 
@@ -190,7 +185,7 @@ class EventController extends Controller
             return response()->json(['success'=>false,'reason'=>'The event doesn\'t exist']);
         }
 
-        if(!$event->notification_sent && !Auth::user()->isEventOrAbove()){ //Event does exist but the notification hasn't been sent and the user is not events or above
+        if(!$event->notification_sent && !Auth::user()->hasPermission('events.manage')){ //Event does exist but the notification hasn't been sent and the user is not events or above
             return response()->json(['success'=>false,'reason'=>'The event doesn\'t exist']);
         }
 
@@ -240,7 +235,7 @@ class EventController extends Controller
 
         //Cleaning up names and sending only the public name of the users
 
-        $elevated_access = auth()->user()->isEventOrAbove() || auth()->user()->isModeratorOrAbove();
+        $elevated_access = auth()->user()->hasPermission('users.access.view');
 
         $event->rosters->each(function ($roster) use ($elevated_access) {
 
@@ -275,7 +270,7 @@ class EventController extends Controller
 
     public function edit($id){
 
-        if(!Auth::user()->isEvent()){
+        if(!Auth::user()->hasPermission('events.manage')){
             return redirect()->route('dashboard')->withErrors(['You\'re not allowed to access this page']);
         }
 
@@ -294,7 +289,7 @@ class EventController extends Controller
 
     public function patch(Request $request, $id){
         //TODO promeni svaki roster i mozda availability da bude u skladu sa novim vremenom
-        if(!Auth::user()->isEvent()){
+        if(!Auth::user()->hasPermission('events.manage')){
             return redirect()->route('dashboard')->withErrors(['You\'re not allowed to access this page']);
         }
 

@@ -13,7 +13,7 @@
             <div class="card-header bg-primary py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 fw-bold text-white">
                     Create Event
-                </h6> 
+                </h6>
             </div>
             <div class="card-body">
                 <form id="createEventForm" action="{!! action('EventController@store') !!}" method="POST" enctype="multipart/form-data">
@@ -21,7 +21,7 @@
 
                     <div class="mb-3">
                         <label class="form-label" for="name">Name</label>
-                        <input 
+                        <input
                             id="name"
                             class="form-control"
                             type="text"
@@ -42,7 +42,7 @@
                                 name="date"
                                 v-model="date"
                                 :disabled="expireInf"
-                                :placeholder="expireInf && 'Never expires'" 
+                                :placeholder="expireInf && 'Never expires'"
                                 v-bind:class="{'is-invalid': (validationError && (date == null || date.trim() == ''))}"
                                 ref="date">
                             <span v-show="validationError && (date == null || date.trim() == '')" style="display: none;" class="text-danger">Fill out a valid event date</span>
@@ -50,7 +50,7 @@
 
                         <div class="col">
                             <label class="form-label" for="startTime">Start time</label>
-                            <input 
+                            <input
                                 id="startTime"
                                 class="form-control"
                                 type="text"
@@ -64,7 +64,7 @@
 
                         <div class="col">
                             <label class="form-label" for="endTime">End time</label>
-                            <input 
+                            <input
                                 id="endTime"
                                 class="form-control"
                                 type="text"
@@ -87,16 +87,16 @@
                         <div class="col-12 col-lg-6">
                             <label class="form-label">ATC Notes</label>
                             <textarea id="notes" name="notes">
-                                
+
                             </textarea>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label for="coverImage" class="form-label">Cover image</label>
-                        <input 
-                            class="form-control" 
-                            type="file" 
+                        <input
+                            class="form-control"
+                            type="file"
                             id="coverImage"
                             name="coverImage"
                             v-bind:class="{'is-invalid': (validationError && (coverImage == null || coverImage == ''))}"
@@ -105,7 +105,7 @@
                         <span v-show="validationError && (coverImage == null || coverImage == '')" style="display: none" class="text-danger">You need to upload an cover image</span>
                     </div>
 
-                    @if(Auth::user()->isAdmin())
+                    @if(Auth::user()->hasGlobalRole('admin'))
                         <div class="mb-3">
                             <input class="form-check-input" type="checkbox" value="" id="sendNotification" name="sendNotification">
                             <label class="form-check-label ps-1" for="sendNotification">
@@ -125,7 +125,7 @@
 @endsection
 
 @section('js')
-<!-- Flatpickr --> 
+<!-- Flatpickr -->
 @vite(['resources/js/flatpickr.js', 'resources/sass/flatpickr.scss'])
 @vite('resources/js/vue.js')
 <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js"></script>

@@ -160,9 +160,9 @@
             <!-- Card Header - Dropdown -->
             <div class="card-header bg-primary py-0 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 fw-bold text-white my-3">Events</h6>
-                @if(Auth::user()->isEventOrAbove())
+                @can('events.manage')
                     <a href="{{ route('event.create') }}" class="btn btn-success py-1">New event</a>
-                @endif
+                @endcan
             </div>
             <!-- Card Body -->
             <div class="card-body p-0">
@@ -232,13 +232,11 @@
                         <!-- Card Header - Dropdown -->
                         <div class="card-header bg-primary py-0 d-flex flex-row align-items-center justify-content-end">
                             <h6 class="m-0 fw-bold text-white my-3 eventName me-auto">Event name</h6>
-                            @if(Auth::user()->isEventOrAbove())
+                            @can('events.manage')
                                 <a class="btn btn-success mx-1 editRoster">Edit roster</a>
                                 <a class="btn btn-info mx-1 updateEvent">Update event</a>
-                            @endif
-                            @if(Auth::user()->isAdmin() || Auth::user()->isEvent())
                                 <a class="btn btn-success d-none mx-1 publishEvent">Publish event</a>
-                            @endif
+                            @endcan
                         </div>
                         <!-- Card Body -->
                         <div class="card-body" style="max-height:85vh;overflow:auto;">
@@ -286,7 +284,7 @@
     <!-- Area Chart -->
     <div class="col-xl-8 col-lg-7 ">
 
-        @if(\Auth::user()->isMentor())
+        @if(\Auth::user()->hasRole('mentor'))
         <div class="card shadow mb-4 d-none d-xl-block d-lg-block d-md-block">
             <!-- Card Header - Dropdown -->
             <div class="card-header bg-primary py-3 d-flex flex-row align-items-center justify-content-between">
@@ -325,7 +323,7 @@
                                 </td>
                                 <td>{{ $training->area->name }}</td>
                                 <td>
-                                    <i class="{{ $statuses[$training->status]["icon"] }} text-{{ $statuses[$training->status]["color"] }}"></i>&ensp;{{ $statuses[$training->status]["text"] }}{{ isset($training->paused_at) ? ' (PAUSED)' : '' }}
+                                    <i class="{{ $training->status->icon() }} text-{{ $training->status->color() }}"></i>&ensp;{{ $training->status->label() }}{{ isset($training->paused_at) ? ' (PAUSED)' : '' }}
                                 </td>
                                 <td>
                                     @if($training->reports->count() > 0)
@@ -335,13 +333,13 @@
                                         @endphp
                                         <span title="{{ $reportDate->toEuropeanDate() }}">
                                             @if($reportDate->isToday())
-                                            <span class="{{ ($trainingIntervalExceeded && $training->status != \App\Helpers\TrainingStatus::AWAITING_EXAM->value && !$training->paused_at) ? 'text-danger' : '' }}">Today</span>
+                                            <span class="{{ ($trainingIntervalExceeded && $training->status !== \App\Helpers\TrainingStatus::AWAITING_EXAM && !$training->paused_at) ? 'text-danger' : '' }}">Today</span>
                                             @elseif($reportDate->isYesterday())
-                                            <span class="{{ ($trainingIntervalExceeded && $training->status != \App\Helpers\TrainingStatus::AWAITING_EXAM->value && !$training->paused_at) ? 'text-danger' : '' }}">Yesterday</span>
+                                            <span class="{{ ($trainingIntervalExceeded && $training->status !== \App\Helpers\TrainingStatus::AWAITING_EXAM && !$training->paused_at) ? 'text-danger' : '' }}">Yesterday</span>
                                             @elseif($reportDate->diffInDays() <= 7)
-                                            <span class="{{ ($trainingIntervalExceeded && $training->status != \App\Helpers\TrainingStatus::AWAITING_EXAM->value && !$training->paused_at) ? 'text-danger' : '' }}">{{ $reportDate->diffForHumans(['parts' => 1]) }}</span>
+                                            <span class="{{ ($trainingIntervalExceeded && $training->status !== \App\Helpers\TrainingStatus::AWAITING_EXAM && !$training->paused_at) ? 'text-danger' : '' }}">{{ $reportDate->diffForHumans(['parts' => 1]) }}</span>
                                             @else
-                                            <span class="{{ ($trainingIntervalExceeded && $training->status != \App\Helpers\TrainingStatus::AWAITING_EXAM->value && !$training->paused_at) ? 'text-danger' : '' }}">{{ $reportDate->diffForHumans(['parts' => 2]) }}</span>
+                                            <span class="{{ ($trainingIntervalExceeded && $training->status !== \App\Helpers\TrainingStatus::AWAITING_EXAM && !$training->paused_at) ? 'text-danger' : '' }}">{{ $reportDate->diffForHumans(['parts' => 2]) }}</span>
                                             @endif
 
                                         </span>
@@ -407,7 +405,7 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <i class="{{ $statuses[$training->status]["icon"] }} text-{{ $statuses[$training->status]["color"] }}"></i>&ensp;{{ $statuses[$training->status]["text"] }}{{ isset($training->paused_at) ? ' (PAUSED)' : '' }}
+                                    <i class="{{ $training->status->icon() }} text-{{ $training->status->color() }}"></i>&ensp;{{ $training->status->label() }}{{ isset($training->paused_at) ? ' (PAUSED)' : '' }}
                                 </td>
                             </tr>
                             @endforeach
@@ -486,7 +484,7 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
 
-        const hasElevatedAccess = {{ auth()->user()->isEvent() ? 'true' : 'false' }};
+        const hasElevatedAccess = {{ auth()->user()->hasPermission('events.manage') ? 'true' : 'false' }};
 
         const eventModalId = '#eventModal';
 

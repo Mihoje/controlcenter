@@ -3,6 +3,8 @@
 namespace Tests\Unit;
 
 use App\Exceptions\PolicyMissingException;
+use App\Models\Area;
+use App\Models\AtcActivity;
 use App\Models\Training;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -81,5 +83,77 @@ class UserUnitTest extends TestCase
         $this->expectException(PolicyMissingException::class);
 
         $this->user->viewableModels('\App\Test');
+    }
+
+    #[Test]
+    public function all_active_in_area_returns_users_with_activity_data()
+    {
+        $area = Area::factory()->create();
+        $activity = AtcActivity::create([
+            'user_id' => $this->user->id,
+            'area_id' => $area->id,
+            'hours' => 10,
+            'hours_in_period' => 5.5,
+            'last_online' => now(),
+            'atc_active' => true,
+        ]);
+
+        $users = User::allActiveInArea($area);
+
+        $this->assertTrue($users->contains($this->user));
+
+        $retrievedUser = $users->find($this->user->id);
+        $this->assertEquals(5.5, $retrievedUser->hours_in_period);
+        $this->assertNotNull($retrievedUser->last_online);
+    }
+
+    #[Test]
+    public function accessible_areas_returns_no_access_for_unknown_permission(): void
+    {
+        $scope = $this->user->accessibleAreasForPermission('non-existent-permission');
+
+        $this->assertFalse($scope->hasAccess());
+        $this->assertFalse($scope->isGlobal);
+    }
+
+    #[Test]
+    public function accessible_areas_returns_global_for_null_area_assignment(): void
+    {
+        $this->user->roleAssignments()->create(['role' => 'admin', 'area_id' => null]);
+
+        $scope = $this->user->accessibleAreasForPermission('training.statistics.view');
+
+        $this->assertTrue($scope->isGlobal);
+        $this->assertTrue($scope->hasAccess());
+    }
+
+    #[Test]
+    public function accessible_areas_returns_single_area_for_single_area_assignment(): void
+    {
+        $area = Area::factory()->create();
+        $this->user->roleAssignments()->create(['role' => 'moderator', 'area_id' => $area->id]);
+
+        $scope = $this->user->accessibleAreasForPermission('training.statistics.view');
+
+        $this->assertFalse($scope->isGlobal);
+        $this->assertTrue($scope->hasAccess());
+        $this->assertCount(1, $scope->areas);
+        $this->assertTrue($scope->areas->contains('id', $area->id));
+    }
+
+    #[Test]
+    public function accessible_areas_returns_all_areas_for_multiple_area_assignments(): void
+    {
+        $area1 = Area::factory()->create();
+        $area2 = Area::factory()->create();
+        $this->user->roleAssignments()->create(['role' => 'moderator', 'area_id' => $area1->id]);
+        $this->user->roleAssignments()->create(['role' => 'moderator', 'area_id' => $area2->id]);
+
+        $scope = $this->user->accessibleAreasForPermission('training.statistics.view');
+
+        $this->assertFalse($scope->isGlobal);
+        $this->assertCount(2, $scope->areas);
+        $this->assertTrue($scope->areas->contains('id', $area1->id));
+        $this->assertTrue($scope->areas->contains('id', $area2->id));
     }
 }

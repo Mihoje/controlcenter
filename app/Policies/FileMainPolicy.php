@@ -17,7 +17,7 @@ class FileMainPolicy
      */
     public function create(User $user)
     {
-        return $user->isAdmin();
+        return $user->hasGlobalRole('admin');
     }
 
     /**
@@ -27,7 +27,7 @@ class FileMainPolicy
      */
     public function update(User $user, FileMain $file)
     {
-        return $user->isAdmin();
+        return $user->hasGlobalRole('admin');
     }
 
     /**
@@ -37,6 +37,6 @@ class FileMainPolicy
      */
     public function delete(User $user, FileMain $file)
     {
-        return $user->isAdmin();
+        return $user->hasGlobalRole('admin');
     }
 }

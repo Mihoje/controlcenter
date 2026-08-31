@@ -4,20 +4,31 @@ namespace App\Http\Controllers;
 
 use anlutro\LaravelSettings\Facade as Setting;
 use App\Enums\PublicNameDisplay;
+use App\Exceptions\StatisticsApiException;
 use App\Facades\DivisionApi;
 use App\Helpers\Vatsim;
+use App\Http\Requests\StatisticsSessionsRequest;
 use App\Models\Area;
 use App\Models\AtcActivity;
-use App\Models\Group;
 use App\Models\TrainingExamination;
 use App\Models\TrainingReport;
 use App\Models\User;
+use App\Services\StatisticsService;
 use Carbon\Carbon;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\RequestException;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 
 /**
  * Controller to handle user views
@@ -27,9 +38,9 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\View\View
+     * @return View
      *
-     * @throws \Illuminate\Auth\Access\AuthorizationException
+     * @throws AuthorizationException
      */
     public function index()
     {
@@ -90,9 +101,9 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\View\View
+     * @return View
      *
-     * @throws \Illuminate\Auth\Access\AuthorizationException
+     * @throws AuthorizationException
      */
     public function indexOther()
     {
@@ -111,23 +122,32 @@ class UserController extends Controller
     /**
      * Display the specified resource.
      *
-     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\View\View|void
+     * @return Application|Factory|View|void
      *
-     * @throws \Illuminate\Auth\Access\AuthorizationException
+     * @throws AuthorizationException
      */
-    public function show(User $user)
+    public function show(User $user, StatisticsService $statisticsService)
     {
         $this->authorize('view', $user);
 
-        $groups = Group::all();
+        $roles = config('roles.roles');
         $areas = Area::all();
 
         if ($user == null) {
             return abort(404);
         }
 
+        $user->load([
+            'roleAssignments',
+            'trainings.ratings',
+            'endorsements.ratings',
+            'endorsements.positions',
+            'endorsements.areas',
+            'endorsements.issuedBy',
+            'endorsements.revokedBy',
+        ]);
+
         $trainings = $user->trainings;
-        $statuses = TrainingController::$statuses;
         $types = TrainingController::$types;
         $endorsements = $user->endorsements->whereIn('type', ['EXAMINER', 'FACILITY', 'SOLO', 'VISITING'])->sortBy([['expired', 'asc'], ['revoked', 'asc']]);
 
@@ -179,7 +199,21 @@ class UserController extends Controller
 
         $trainingBans = $user->trainingBans()->orderBy('created_at', 'DESC')->get();
 
-        return view('user.show', compact('user', 'groups', 'areas', 'trainings', 'statuses', 'types', 'endorsements', 'areas', 'divisionExams', 'atcActivityHours', 'totalHours', 'trainingBans'));
+        // Fetch recent ATC sessions from StatSim via the StatisticsService.
+        // Use the same general window as the activity chart (last 12 months)
+        // and then narrow to a configurable \"recent\" period for the table.
+        $to = Carbon::now()->endOfDay();
+        $from = (clone $to)->subMonths(11)->startOfDay();
+
+        $recentAtcSessions = collect(
+            $statisticsService->getRecentSessionsSummary(
+                (string) $user->id,
+                $from,
+                $to
+            )
+        );
+
+        return view('user.show', compact('user', 'roles', 'areas', 'trainings', 'types', 'endorsements', 'areas', 'divisionExams', 'atcActivityHours', 'totalHours', 'recentAtcSessions', 'trainingBans'));
     }
 
     /**
@@ -187,7 +221,7 @@ class UserController extends Controller
      *
      * @return array
      *
-     * @throws \Illuminate\Auth\Access\AuthorizationException
+     * @throws AuthorizationException
      */
     public function search(Request $request)
     {
@@ -227,25 +261,21 @@ class UserController extends Controller
 
     /**
      * AJAX: Return ATC hours from VATSIM for user
-     *
-     * @return array
-     *
-     * @throws \Illuminate\Auth\Access\AuthorizationException
      */
-    public function fetchVatsimHours(Request $request)
+    public function fetchVatsimHours(Request $request): JsonResponse
     {
         $cid = $request['cid'];
 
         $vatsimStats = [];
         try {
-            $client = new \GuzzleHttp\Client();
+            $client = new Client();
             $res = $client->request('GET', 'https://api.vatsim.net/v2/members/' . $cid . '/stats');
             if ($res->getStatusCode() == 200) {
                 $vatsimStats = json_decode($res->getBody(), false);
             }
-        } catch (\GuzzleHttp\Exception\RequestException $e) {
+        } catch (RequestException $e) {
             return response()->json(['data' => null], 404);
-        } catch (\GuzzleHttp\Exception\ClientException $e) {
+        } catch (ClientException $e) {
             return response()->json(['data' => null], 404);
         }
 
@@ -253,94 +283,32 @@ class UserController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
-     *
-     * @return \Illuminate\Http\Response
-     *
-     * @throws \Illuminate\Auth\Access\AuthorizationException
+     * AJAX: Return ATC sessions from statistics API for user
      */
-    public function update(Request $request, User $user)
+    public function fetchStatisticsSessions(StatisticsSessionsRequest $request, User $user, StatisticsService $service): JsonResponse
     {
-        $this->authorize('update', $user);
-        $permissions = [];
+        try {
+            $sessions = $service->getCachedAtcSessions(
+                $user->id,
+                $request->date('from'),
+                $request->date('to')
+            );
 
-        // Generate a list of possible validations
-        foreach (Area::all() as $area) {
-            foreach (Group::all() as $group) {
-                // Don't list or allow admin rank to be set through this interface
-                if ($group->id == 1) {
-                    continue;
-                }
+            $transformed = $service->transformSessions($sessions);
 
-                // Only process ranks the user is allowed to change
-                if (! \Illuminate\Support\Facades\Gate::inspect('updateGroup', [$user, $group, $area])->allowed()) {
-                    continue;
-                }
-
-                $key = $area->id . '_' . $group->name;
-                $permissions[$key] = '';
-            }
+            return response()->json($transformed);
+        } catch (StatisticsApiException $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'status' => $e->getHttpStatus() ?: 500,
+            ], $e->getHttpStatus() ?: 500);
         }
-
-        // Valiate and allow these fields, then loop through permissions to set the final data set
-        $data = $request->validate($permissions);
-        foreach ($permissions as $key => $value) {
-            isset($data[$key]) ? $permissions[$key] = true : $permissions[$key] = false;
-        }
-
-        // Check and update the permissions
-        foreach ($permissions as $key => $value) {
-            $str = explode('_', $key);
-
-            $area = Area::where('id', $str[0])->get()->first();
-            $group = Group::where('name', $str[1])->get()->first();
-
-            // Check if permission is not set, and set it or other way around.
-            if ($user->groups()->where('area_id', $area->id)->where('group_id', $group->id)->get()->count() == 0) {
-                if ($value == true) {
-                    $this->authorize('updateGroup', [$user, $group, $area]);
-
-                    // Call the division API to assign mentor
-                    if ($group->id == 3) {
-                        $response = DivisionApi::assignMentor($user, Auth::id());
-                        if ($response && $response->failed()) {
-                            return back()->withErrors('Request failed due to error in ' . DivisionApi::getName() . ' API: ' . $response->json()['message']);
-                        }
-                    }
-
-                    // Attach the new permission
-                    $user->groups()->attach($group, ['area_id' => $area->id, 'inserted_by' => Auth::id()]);
-                }
-            } else {
-                if ($value == false) {
-                    $this->authorize('updateGroup', [$user, $group, $area]);
-
-                    // Call the division API to assign mentor
-                    if ($group->id == 3) {
-                        $response = DivisionApi::removeMentor($user, Auth::id());
-                        if ($response && $response->failed()) {
-                            return back()->withErrors('Request failed due to error in ' . DivisionApi::getName() . ' API: ' . $response->json()['message']);
-                        }
-                    }
-
-                    // Detach the permission
-                    $user->groups()->wherePivot('area_id', $area->id)->wherePivot('group_id', $group->id)->detach();
-                }
-            }
-
-            // Check and detach trainings from mentor
-            if ($user->teaches()->where('area_id', $area->id)->count() > 0 && ! $user->isMentor() && $value == false) {
-                $user->teaches()->detach($user->teaches->where('area_id', $area->id));
-            }
-        }
-
-        return redirect(route('user.show', $user))->with('success', 'User access settings successfully updated.');
     }
 
     /**
      * Display a listing of user's settings
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function settings()
     {
@@ -352,7 +320,7 @@ class UserController extends Controller
     /**
      * Update the user's settings to storage
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function settings_update(Request $request, User $user)
     {
@@ -365,7 +333,8 @@ class UserController extends Controller
             'setting_notify_newexamreport' => '',
             'setting_notify_tasks' => '',
             'setting_workmail_address' => 'nullable|email|max:64|regex:/(.*)' . Setting::get('linkDomain') . '$/i',
-            'setting_public_name' => ['required', Rule::in(array_column(PublicNameDisplay::cases(), 'value'))]
+            'setting_public_name' => ['required', Rule::in(array_column(PublicNameDisplay::cases(), 'value'))],
+            'setting_theme' => 'required|in:light,dark,system',
         ]);
 
         isset($data['setting_notify_newreport']) ? $setting_notify_newreport = true : $setting_notify_newreport = false;
@@ -382,6 +351,7 @@ class UserController extends Controller
         $user->setting_notify_newexamreport = $setting_notify_newexamreport;
         $user->setting_notify_tasks = $setting_notify_tasks;
         $user->public_name_setting = $setting_public_name;
+        $user->setting_theme = $data['setting_theme'];
 
         if (! $user->setting_workmail_address && isset($data['setting_workmail_address'])) {
             $user->setting_workmail_address = $data['setting_workmail_address'];
@@ -397,17 +367,34 @@ class UserController extends Controller
     }
 
     /**
+     * Persist only the theme preference (used by the header theme toggle).
+     */
+    public function settings_update_theme(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'setting_theme' => 'required|in:light,dark,system',
+        ]);
+
+        $user = Auth::user();
+        $user->setting_theme = $data['setting_theme'];
+        $user->save();
+
+        return response()->json(['setting_theme' => $user->setting_theme]);
+    }
+
+    /**
      * Display a listing of user's reports
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function reports(Request $request, User $user)
     {
         $this->authorize('viewReports', $user);
 
         $viewingUser = Auth::user();
-        $examinations = $viewingUser->viewableModels(TrainingExamination::class, [['examiner_id', '=', $user->id]]);
-        $reports = $viewingUser->viewableModels(TrainingReport::class, [['written_by_id', '=', $user->id]]);
+        $trainingContext = ['training.area', 'training.user', 'training.ratings', 'training.mentors', 'attachments.file'];
+        $examinations = $viewingUser->viewableModels(TrainingExamination::class, [['examiner_id', '=', $user->id]], [...$trainingContext, 'examiner', 'position']);
+        $reports = $viewingUser->viewableModels(TrainingReport::class, [['written_by_id', '=', $user->id]], [...$trainingContext, 'author']);
 
         $reportsAndExams = collect($reports)->merge($examinations);
         $reportsAndExams = $reportsAndExams->sort(function ($a, $b) {
@@ -429,7 +416,7 @@ class UserController extends Controller
     /**
      * Renew 30 days on the workmail address
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function extendWorkmail()
     {
@@ -448,7 +435,7 @@ class UserController extends Controller
     /**
      * Fetch users from VATSIM Core API
      *
-     * @return \Illuminate\Http\Response|bool
+     * @return Response|bool
      */
     private function fetchUsersFromVatsimCoreApi()
     {

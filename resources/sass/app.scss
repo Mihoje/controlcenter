@@ -10,8 +10,15 @@
 @use '@fortawesome/fontawesome-free/scss/regular.scss' as fa-regular;
 @use '@fortawesome/fontawesome-free/scss/brands.scss' as fa-brands;
 
+// Theme CSS Variables
+@import "themes/light";
+@import "themes/dark";
+
 // Variables
 @import "variables";
+
+// Instance theme override (see themes/_custom.scss.example).
+@import "themes/custom";
 
 // Bootstrap
 @import "~bootstrap/scss/bootstrap";
@@ -25,3 +32,5 @@
 @import "navs.scss";
 @import "buttons.scss";
 
+// Apply CSS variables to override Bootstrap
+@import "theme-overrides";

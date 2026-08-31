@@ -2,9 +2,9 @@
  * Imports
 */
 
+import Sortable from 'sortablejs';
 import * as bootstrap from 'bootstrap'
 import moment from 'moment';
-import Sortable from 'sortablejs';
 import { Notyf } from 'notyf';
 import 'notyf/notyf.min.css';
 
@@ -13,6 +13,7 @@ import 'notyf/notyf.min.css';
  * Insert global variables
 */
 
+window.Sortable = Sortable;
 window.moment = moment;
 window.bootstrap = bootstrap;
 window.Sortable = Sortable;

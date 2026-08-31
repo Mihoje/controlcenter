@@ -24,14 +24,14 @@ class TrainingBanPolicy
      */
     public function view(User $user)
     {
-        return $user->isModeratorOrAbove();
+        return $user->hasPermission('training_ban.manage');
     }
 
     public function create(User $user){
-        return $user->isModeratorOrAbove();
+        return $user->hasPermission('training_ban.manage');
     }
 
     public function revoke(User $user, TrainingBan $ban){
-        return $user->isAdmin() || ($user == $ban->issuer && $user->isModeratorOrAbove());
+        return $user->hasGlobalRole('admin') || ($user == $ban->issuer && $user->hasPermission('training_ban.manage'));
     }
 }

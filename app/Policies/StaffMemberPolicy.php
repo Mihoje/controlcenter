@@ -13,7 +13,7 @@ class StaffMemberPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->hasGlobalRole('admin');
     }
 
     /**
@@ -21,7 +21,7 @@ class StaffMemberPolicy
      */
     public function create(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->hasGlobalRole('admin');
     }
 
     /**
@@ -29,7 +29,7 @@ class StaffMemberPolicy
      */
     public function update(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->hasGlobalRole('admin');
     }
 
     /**
@@ -37,6 +37,6 @@ class StaffMemberPolicy
      */
     public function delete(User $user, StaffMember $staffMember): bool
     {
-        return $user->isAdmin();
+        return $user->hasGlobalRole('admin');
     }
 }
