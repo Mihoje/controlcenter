@@ -245,7 +245,7 @@ return [
             'training.view',
             'training.reports.one-time-link',
         ],
-        'event' => [
+        'events' => [
             'events.manage',
         ]
     ],
