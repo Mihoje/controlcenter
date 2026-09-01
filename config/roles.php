@@ -246,7 +246,7 @@ return [
             'training.reports.one-time-link',
         ],
         'event' => [
-            'event.manage',
+            'events.manage',
         ]
     ],
 ];
