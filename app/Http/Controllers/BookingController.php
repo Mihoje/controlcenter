@@ -272,10 +272,13 @@ class BookingController extends Controller
 
         $booking->deleted = true;
 
-        try {
-            VatsimBookingApi::deleteBooking($booking);
-        } catch (VatsimAPIException $e) {
-            return redirect(route('booking'))->withErrors('Booking deletion failed with error: ' . $e->getMessage() . '. Please contact staff if this issue persists.');
+        // Still getting away with not publishing some bookings to VATSIM
+        if($booking->vatsim_booking){
+            try {
+                VatsimBookingApi::deleteBooking($booking);
+            } catch (VatsimAPIException $e) {
+                return redirect(route('booking'))->withErrors('Booking deletion failed with error: ' . $e->getMessage() . '. Please contact staff if this issue persists.');
+            }
         }
 
         $booking->save();
