@@ -87,7 +87,7 @@ class BookingPolicy
      */
     public function bookEventTag(User $user): bool
     {
-        return ($user->isMember() || $user->isVisiting()) && $user->rating->isGreaterThanOrEqual(VatsimRating::S1);
+        return $user->hasPermission('events.manage');
     }
 
     /**

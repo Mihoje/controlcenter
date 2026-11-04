@@ -13,6 +13,7 @@ use App\Models\Position;
 use App\Models\User;
 use App\Models\Booking;
 use App\Services\ActivityLogService;
+use App\Services\BookingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\DB;
 
 class EventRosterController extends Controller
 {
+    public const TAG_EVENT = 3;
+
     public function show($id){
         if(!Auth::user()->hasPermission('events.manage')){
             return redirect('/dashboard');
@@ -212,6 +215,8 @@ class EventRosterController extends Controller
             return redirect('/dashboard')->withErrors(['The event is not published yet. Publish it first.']);
         }
 
+        $bookingsCtl = new BookingController(new BookingService());
+
         $toSave = [];
 
         foreach ($event->rosters as $roster) {
@@ -220,14 +225,17 @@ class EventRosterController extends Controller
                 continue;
             }
 
-            Booking::where('callsign', $roster->position->code)->where('event', 1)->where('time_end', '>', Carbon::parse($roster->from . 'z'))->where('time_start', '<', Carbon::parse($roster->to, 'z'))->delete();
-            Booking::where('callsign', $roster->position->code)->where('time_end', '>', Carbon::parse($roster->from . 'z'))->where('time_start', '<', Carbon::parse($roster->to, 'z'))->update(['deleted'=>1]);
+            $toDelete = Booking::where('source', "event:$id")->orWhere(function($q) use ($roster){
+                $q->where('deleted', 0)->where('callsign', $roster->position->code)->where('time_end', '>', Carbon::parse($roster->from . 'z'))->where('time_start', '<', Carbon::parse($roster->to, 'z'));
+            })->get();
+
+            $position = Position::where('callsign', $roster->position->code)->first(); //pakao
 
             $booking = new Booking();
 
-            $booking->source = "Event";
+            $booking->source = "event:$id";
             $booking->callsign = $roster->position->code;
-            $booking->position_id = Position::where('callsign', $roster->position->code)->first()->id; //pakao
+            $booking->position_id = $position->id;
             $booking->name = Auth::user()->name;
             $booking->time_start = Carbon::parse($roster->from . 'z');
             $booking->time_end = Carbon::parse($roster->to . 'z');
@@ -236,11 +244,22 @@ class EventRosterController extends Controller
 
 
             //$booking->save(); //ovo se sklanja da ako neki debil u events dep stavi dva kretena u isto vreme da ne uzme samo zadnji booking
-            array_push($toSave, $booking); //i ovo
+            array_push($toSave, [$booking, $position, $toDelete]); //i ovo
         }
 
+        $deletedIds = [];
+
         foreach ($toSave as $b) { // i onda cuvamo ovde sve bookings-e
-            $b->save();
+
+            foreach ($b[2] as $booking) {
+                if(in_array($booking->id, $deletedIds)){ // jesus christ
+                    continue;
+                }
+                array_push($deletedIds, $booking->id);
+                $bookingsCtl->delete($booking->id);
+            }
+
+            $bookingsCtl->persistBooking($b[0], $b[1], EventRosterController::TAG_EVENT);
         }
 
         ActivityLogService::info(LogName::Other, 'Booked positions for event ' . $event->id);

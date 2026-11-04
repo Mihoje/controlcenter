@@ -210,7 +210,7 @@ class BookingController extends Controller
      *
      * @throws AuthorizationException
      */
-    private function persistBooking(Booking $booking, Position $position, ?int $tag, bool $bulk = false): RedirectResponse|bool
+    public function persistBooking(Booking $booking, Position $position, ?int $tag, bool $bulk = false): RedirectResponse|bool
     {
         $this->authorize('position', $booking);
 
